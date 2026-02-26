@@ -2,6 +2,8 @@ node_modules/
 dist/
 .wrangler/
 .dev.vars
+frontend/.env
+frontend/.env.*
 .mf/
 frontend/node_modules/
 frontend/dist/
