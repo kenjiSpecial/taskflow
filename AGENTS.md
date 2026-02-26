@@ -1,8 +1,8 @@
-# TODO Manager API
+# Taskflow API
 
 ## 概要
 
-個人用TODOマネージャーのREST API。Hono + Cloudflare Workers + D1。
+個人用タスク・スケジュール管理のREST API。Hono + Cloudflare Workers + D1。
 
 ## 認証
 
@@ -14,7 +14,7 @@ export TODO_API_TOKEN="your-token-here"
 
 ## Base URL
 
-- Production: `https://todo-manager.<your-subdomain>.workers.dev`
+- Production: `https://taskflow.kenji-draemon.workers.dev`
 - Development: `http://localhost:8787`
 
 ## エンドポイント
