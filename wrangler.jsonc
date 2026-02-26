@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "taskflow-db",
-      "database_id": "",
+      "database_id": "57f20396-6fd6-4d0b-a30b-45a73ad5bb00",
       "migrations_dir": "migrations"
     }
   ],
