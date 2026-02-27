@@ -113,9 +113,10 @@ app.post("/", async (c) => {
   const id = crypto.randomUUID().replace(/-/g, "");
   const timestamp = now();
 
-  await c.env.DB.prepare(
+  const todo = await c.env.DB.prepare(
     `INSERT INTO todos (id, title, description, status, priority, due_date, project, parent_id, sort_order, completed_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     RETURNING *`,
   ).bind(
     id,
     data.title,
@@ -129,9 +130,8 @@ app.post("/", async (c) => {
     data.status === "completed" ? timestamp : null,
     timestamp,
     timestamp,
-  ).run();
+  ).first<TodoRow>();
 
-  const todo = await c.env.DB.prepare("SELECT * FROM todos WHERE id = ?").bind(id).first<TodoRow>();
   return c.json({ todo }, 201);
 });
 
@@ -177,11 +177,10 @@ app.patch("/:id", async (c) => {
   sets.push("completed_at = ?", "updated_at = ?");
   params.push(completedAt, timestamp, id);
 
-  await c.env.DB.prepare(
-    `UPDATE todos SET ${sets.join(", ")} WHERE id = ?`,
-  ).bind(...params).run();
+  const todo = await c.env.DB.prepare(
+    `UPDATE todos SET ${sets.join(", ")} WHERE id = ? RETURNING *`,
+  ).bind(...params).first<TodoRow>();
 
-  const todo = await c.env.DB.prepare("SELECT * FROM todos WHERE id = ?").bind(id).first<TodoRow>();
   return c.json({ todo });
 });
 

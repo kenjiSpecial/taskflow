@@ -1,14 +1,14 @@
-import { signal } from "@preact/signals";
+import { useSignal } from "@preact/signals";
 import type { Todo } from "../lib/api";
-import { editTodo, removeTodo, todos } from "../stores/todo-store";
+import { editTodo, removeTodo, childrenMap } from "../stores/todo-store";
 
 interface Props {
   todo: Todo;
 }
 
 export function TodoItem({ todo }: Props) {
-  const editing = signal(false);
-  const editTitle = signal(todo.title);
+  const editing = useSignal(false);
+  const editTitle = useSignal(todo.title);
 
   const toggleStatus = async () => {
     const newStatus = todo.status === "completed" ? "pending" : "completed";
@@ -34,7 +34,7 @@ export function TodoItem({ todo }: Props) {
 
   const priorityClass = `badge badge-${todo.priority}`;
   const priorityLabel = { high: "高", medium: "中", low: "低" }[todo.priority];
-  const children = todos.value.filter((t) => t.parent_id === todo.id);
+  const children = childrenMap.value.get(todo.id) || [];
 
   return (
     <div>

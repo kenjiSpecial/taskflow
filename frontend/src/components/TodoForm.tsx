@@ -1,10 +1,9 @@
-import { signal } from "@preact/signals";
+import { useSignal } from "@preact/signals";
 import { addTodo } from "../stores/todo-store";
 
-const title = signal("");
-const submitting = signal(false);
-
 export function TodoForm() {
+  const title = useSignal("");
+  const submitting = useSignal(false);
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     const value = title.value.trim();

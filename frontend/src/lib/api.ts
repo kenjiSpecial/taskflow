@@ -25,6 +25,13 @@ export interface ProjectItem {
   count: number;
 }
 
+export type CreateTodoInput = Pick<Todo, "title"> &
+  Partial<Pick<Todo, "description" | "priority" | "due_date" | "project" | "parent_id" | "sort_order">>;
+
+export type UpdateTodoInput = Partial<
+  Pick<Todo, "title" | "description" | "status" | "priority" | "due_date" | "project" | "parent_id" | "sort_order">
+>;
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_TOKEN = import.meta.env.VITE_API_TOKEN || "";
 
@@ -53,11 +60,11 @@ export async function fetchTodo(id: string): Promise<{ todo: Todo }> {
   return request(`/api/todos/${id}`);
 }
 
-export async function createTodo(data: Partial<Todo>): Promise<{ todo: Todo }> {
+export async function createTodo(data: CreateTodoInput): Promise<{ todo: Todo }> {
   return request("/api/todos", { method: "POST", body: JSON.stringify(data) });
 }
 
-export async function updateTodo(id: string, data: Partial<Todo>): Promise<{ todo: Todo }> {
+export async function updateTodo(id: string, data: UpdateTodoInput): Promise<{ todo: Todo }> {
   return request(`/api/todos/${id}`, { method: "PATCH", body: JSON.stringify(data) });
 }
 

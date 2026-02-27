@@ -1,5 +1,5 @@
 import { signal, computed } from "@preact/signals";
-import type { Todo, ProjectItem } from "../lib/api";
+import type { Todo, ProjectItem, CreateTodoInput, UpdateTodoInput } from "../lib/api";
 import * as api from "../lib/api";
 
 export const todos = signal<Todo[]>([]);
@@ -26,6 +26,18 @@ export const parentTodos = computed(() =>
   filteredTodos.value.filter((t) => !t.parent_id),
 );
 
+export const childrenMap = computed(() => {
+  const map = new Map<string, Todo[]>();
+  for (const todo of todos.value) {
+    if (todo.parent_id) {
+      const siblings = map.get(todo.parent_id) || [];
+      siblings.push(todo);
+      map.set(todo.parent_id, siblings);
+    }
+  }
+  return map;
+});
+
 export const activeCount = computed(
   () => todos.value.filter((t) => t.status !== "completed").length,
 );
@@ -34,7 +46,7 @@ export async function loadTodos() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api.fetchTodos();
+    const res = await api.fetchTodos({ limit: "1000" });
     todos.value = res.todos;
   } catch (e) {
     error.value = (e as Error).message;
@@ -47,19 +59,19 @@ export async function loadProjects() {
   try {
     const res = await api.fetchProjects();
     projects.value = res.projects;
-  } catch (_) {
-    // silent
+  } catch (e) {
+    console.error("Failed to load projects:", e);
   }
 }
 
-export async function addTodo(data: Partial<Todo>) {
+export async function addTodo(data: CreateTodoInput) {
   const res = await api.createTodo(data);
   todos.value = [res.todo, ...todos.value];
   loadProjects();
   return res.todo;
 }
 
-export async function editTodo(id: string, data: Partial<Todo>) {
+export async function editTodo(id: string, data: UpdateTodoInput) {
   const res = await api.updateTodo(id, data);
   todos.value = todos.value.map((t) => (t.id === id ? res.todo : t));
 }
