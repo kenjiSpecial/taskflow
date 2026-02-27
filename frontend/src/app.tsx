@@ -16,7 +16,7 @@ export function App() {
   }, []);
 
   return (
-    <div class="layout">
+    <div class={currentView.value === "tasks" ? "layout" : "layout layout-full"}>
       {currentView.value === "tasks" && <ProjectSidebar />}
       <main class="main">
         <ViewToggle />

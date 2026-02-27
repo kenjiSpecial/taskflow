@@ -19,6 +19,6 @@ export const listTodosQuery = z.object({
   project: z.string().optional(),
   sort: z.enum(["due_date", "priority", "created_at", "sort_order"]).default("created_at"),
   order: z.enum(["asc", "desc"]).default("desc"),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });

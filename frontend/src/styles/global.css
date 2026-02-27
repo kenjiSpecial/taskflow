@@ -65,6 +65,10 @@ select:focus {
   min-height: 100vh;
 }
 
+.layout-full {
+  grid-template-columns: 1fr;
+}
+
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
