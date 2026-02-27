@@ -75,3 +75,72 @@ export async function deleteTodo(id: string): Promise<void> {
 export async function fetchProjects(): Promise<{ projects: ProjectItem[] }> {
   return request("/api/projects");
 }
+
+// --- Work Sessions ---
+
+export interface WorkSession {
+  id: string;
+  title: string;
+  description: string | null;
+  project: string | null;
+  status: "active" | "paused" | "done";
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  recent_logs?: SessionLog[];
+}
+
+export interface SessionLog {
+  id: string;
+  session_id: string;
+  content: string;
+  source: "ui" | "cli";
+  created_at: string;
+}
+
+export interface WorkSessionListResponse {
+  sessions: WorkSession[];
+  meta: { total: number; limit: number; offset: number };
+}
+
+export interface SessionLogListResponse {
+  logs: SessionLog[];
+  meta: { total: number; limit: number; offset: number };
+}
+
+export type CreateSessionInput = Pick<WorkSession, "title"> &
+  Partial<Pick<WorkSession, "description" | "project" | "status">>;
+
+export type UpdateSessionInput = Partial<
+  Pick<WorkSession, "title" | "description" | "project" | "status">
+>;
+
+export async function fetchSessions(params?: Record<string, string>): Promise<WorkSessionListResponse> {
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  return request(`/api/sessions${query}`);
+}
+
+export async function fetchSession(id: string): Promise<{ session: WorkSession }> {
+  return request(`/api/sessions/${id}`);
+}
+
+export async function createSession(data: CreateSessionInput): Promise<{ session: WorkSession }> {
+  return request("/api/sessions", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateSession(id: string, data: UpdateSessionInput): Promise<{ session: WorkSession }> {
+  return request(`/api/sessions/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  await request(`/api/sessions/${id}`, { method: "DELETE" });
+}
+
+export async function fetchSessionLogs(sessionId: string, params?: Record<string, string>): Promise<SessionLogListResponse> {
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  return request(`/api/sessions/${sessionId}/logs${query}`);
+}
+
+export async function createSessionLog(sessionId: string, data: { content: string; source?: string }): Promise<{ log: SessionLog }> {
+  return request(`/api/sessions/${sessionId}/logs`, { method: "POST", body: JSON.stringify(data) });
+}
