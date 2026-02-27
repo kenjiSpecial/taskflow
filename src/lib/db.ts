@@ -14,6 +14,25 @@ export interface TodoRow {
   deleted_at: string | null;
 }
 
+export interface WorkSessionRow {
+  id: string;
+  title: string;
+  description: string | null;
+  project: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface SessionLogRow {
+  id: string;
+  session_id: string;
+  content: string;
+  source: string;
+  created_at: string;
+}
+
 export function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }

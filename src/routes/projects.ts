@@ -6,7 +6,11 @@ const app = new Hono<AppEnv>();
 // GET /api/projects - プロジェクト一覧
 app.get("/", async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT DISTINCT project, COUNT(*) as count FROM todos WHERE project IS NOT NULL AND deleted_at IS NULL GROUP BY project ORDER BY count DESC",
+    `SELECT project, SUM(count) as count FROM (
+       SELECT project, COUNT(*) as count FROM todos WHERE project IS NOT NULL AND deleted_at IS NULL GROUP BY project
+       UNION ALL
+       SELECT project, COUNT(*) as count FROM work_sessions WHERE project IS NOT NULL AND deleted_at IS NULL GROUP BY project
+     ) GROUP BY project ORDER BY count DESC`,
   ).all<{ project: string; count: number }>();
 
   return c.json({ projects: rows.results });
