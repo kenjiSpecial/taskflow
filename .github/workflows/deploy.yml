@@ -31,6 +31,6 @@ jobs:
         env:
           VITE_API_URL: https://taskflow.kenji-draemon.workers.dev
           VITE_API_TOKEN: ${{ secrets.TASKFLOW_API_TOKEN }}
-      - run: cd frontend && npx wrangler pages deploy ./dist --project-name=taskflow-ui --commit-message="deploy ${{ github.sha }}"
+      - run: cd frontend && npx wrangler pages deploy ./dist --project-name=taskflow-ui --branch=main --commit-message="deploy ${{ github.sha }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
