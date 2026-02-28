@@ -72,6 +72,16 @@ export async function deleteTodo(id: string): Promise<void> {
   await request(`/api/todos/${id}`, { method: "DELETE" });
 }
 
+export interface ReorderItem {
+  id: string;
+  sort_order: number;
+  parent_id?: string | null;
+}
+
+export async function reorderTodos(items: ReorderItem[]): Promise<void> {
+  await request("/api/todos/reorder", { method: "PATCH", body: JSON.stringify({ items }) });
+}
+
 export async function fetchProjects(): Promise<{ projects: ProjectItem[] }> {
   return request("/api/projects");
 }

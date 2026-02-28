@@ -38,6 +38,19 @@ export const childrenMap = computed(() => {
   return map;
 });
 
+export const taskProgress = computed(() => {
+  const progress = new Map<string, { completed: number; total: number }>();
+  for (const todo of todos.value) {
+    if (todo.parent_id) {
+      const p = progress.get(todo.parent_id) || { completed: 0, total: 0 };
+      p.total++;
+      if (todo.status === "completed") p.completed++;
+      progress.set(todo.parent_id, p);
+    }
+  }
+  return progress;
+});
+
 export const activeCount = computed(
   () => todos.value.filter((t) => t.status !== "completed").length,
 );
@@ -74,6 +87,47 @@ export async function addTodo(data: CreateTodoInput) {
 export async function editTodo(id: string, data: UpdateTodoInput) {
   const res = await api.updateTodo(id, data);
   todos.value = todos.value.map((t) => (t.id === id ? res.todo : t));
+}
+
+export async function toggleTodo(id: string, currentStatus: string) {
+  const newStatus = currentStatus === "completed" ? "pending" : "completed";
+  const res = await api.updateTodo(id, { status: newStatus });
+  todos.value = todos.value.map((t) => (t.id === id ? res.todo : t));
+
+  // 子タスクを完了にした場合、親の全子チェック
+  if (newStatus === "completed" && res.todo.parent_id) {
+    const siblings = childrenMap.value.get(res.todo.parent_id) || [];
+    const allDone = siblings.every((s) =>
+      s.id === id ? true : s.status === "completed",
+    );
+    if (allDone) {
+      const parent = todos.value.find((t) => t.id === res.todo.parent_id);
+      if (parent && parent.status !== "completed") {
+        if (window.confirm(`全子タスク完了。「${parent.title}」も完了にしますか？`)) {
+          await editTodo(parent.id, { status: "completed" });
+        }
+      }
+    }
+  }
+}
+
+export async function reorderTodosAction(items: api.ReorderItem[]) {
+  const prev = todos.value;
+  // 楽観的更新
+  todos.value = todos.value.map((t) => {
+    const item = items.find((i) => i.id === t.id);
+    if (!item) return t;
+    return {
+      ...t,
+      sort_order: item.sort_order,
+      ...(item.parent_id !== undefined ? { parent_id: item.parent_id } : {}),
+    };
+  });
+  try {
+    await api.reorderTodos(items);
+  } catch {
+    todos.value = prev;
+  }
 }
 
 export async function removeTodo(id: string) {

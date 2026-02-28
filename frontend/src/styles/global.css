@@ -524,6 +524,64 @@ select:focus {
   font-weight: 500;
 }
 
+/* Todo Tree */
+.btn-toggle {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 0.625rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-toggle:hover { color: var(--text); }
+
+.todo-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.todo-progress {
+  font-size: 0.75rem;
+  color: var(--success);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.subtask-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+}
+
+.subtask-form input {
+  flex: 1;
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.5rem;
+}
+
+/* D&D */
+.todo-item.drag-over-before { border-top: 2px solid var(--accent); }
+.todo-item.drag-over-after { border-bottom: 2px solid var(--accent); }
+.todo-item.drag-over-inside { background: var(--surface-hover); }
+.todo-item.dragging { opacity: 0.5; }
+
+.todo-drop-zone {
+  height: 2rem;
+  border: 2px dashed transparent;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+
+.todo-drop-zone.active {
+  border-color: var(--accent);
+}
+
 @media (max-width: 768px) {
   .layout {
     grid-template-columns: 1fr;
