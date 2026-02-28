@@ -22,7 +22,8 @@ export interface TodoListResponse {
 
 export interface ProjectItem {
   project: string;
-  count: number;
+  todo_count: number;
+  session_count: number;
 }
 
 export type CreateTodoInput = Pick<Todo, "title"> &

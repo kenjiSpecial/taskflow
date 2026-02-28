@@ -26,7 +26,7 @@ export function ProjectSidebar() {
               onClick={() => setProject(p.project)}
             >
               <span>{p.project}</span>
-              <span class="count">{p.count}</span>
+              <span class="count">{p.todo_count}t / {p.session_count}s</span>
             </div>
           ))}
         </>
