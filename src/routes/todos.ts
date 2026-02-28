@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import type { TodoRow } from "../lib/db";
+import type { TodoRow, WorkSessionRow } from "../lib/db";
 import { now } from "../lib/db";
 import { createTodoSchema, updateTodoSchema, listTodosQuery } from "../validators/todo";
 
@@ -182,6 +182,27 @@ app.patch("/:id", async (c) => {
   ).bind(...params).first<TodoRow>();
 
   return c.json({ todo });
+});
+
+// GET /api/todos/:id/sessions - 関連セッション一覧
+app.get("/:id/sessions", async (c) => {
+  const id = c.req.param("id");
+  const todo = await c.env.DB.prepare(
+    "SELECT * FROM todos WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first<TodoRow>();
+
+  if (!todo) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
+  }
+
+  const sessions = await c.env.DB.prepare(
+    `SELECT ws.* FROM work_sessions ws
+     JOIN session_tasks st ON st.session_id = ws.id
+     WHERE st.todo_id = ? AND ws.deleted_at IS NULL
+     ORDER BY ws.updated_at DESC`,
+  ).bind(id).all<WorkSessionRow>();
+
+  return c.json({ sessions: sessions.results });
 });
 
 // DELETE /api/todos/:id - 論理削除

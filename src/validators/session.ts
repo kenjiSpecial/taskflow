@@ -23,6 +23,10 @@ export const createSessionLogSchema = z.object({
   source: z.enum(["ui", "cli"]).default("ui"),
 });
 
+export const linkSessionTaskSchema = z.object({
+  todo_id: z.string().min(1),
+});
+
 export const listSessionLogsQuery = z.object({
   order: z.enum(["asc", "desc"]).default("asc"),
   limit: z.coerce.number().int().min(1).max(100).default(50),

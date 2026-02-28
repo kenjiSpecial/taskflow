@@ -216,3 +216,187 @@ describe("Session Logs", () => {
     expect(data.session.recent_logs.length).toBe(3);
   });
 });
+
+// ヘルパー: タスク作成
+async function createTodo(body: Record<string, unknown>) {
+  return SELF.fetch("http://localhost/api/todos", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
+async function linkTask(sessionId: string, todoId: string) {
+  return SELF.fetch(`http://localhost/api/sessions/${sessionId}/tasks`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ todo_id: todoId }),
+  });
+}
+
+async function unlinkTask(sessionId: string, todoId: string) {
+  return SELF.fetch(`http://localhost/api/sessions/${sessionId}/tasks/${todoId}`, {
+    method: "DELETE",
+    headers,
+  });
+}
+
+describe("Session Tasks (Linking)", () => {
+  it("タスクリンク成功（activeセッション）", async () => {
+    const sRes = await createSession({ title: "リンクテスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "タスクA" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(201);
+    const data = await res.json() as { session_task: { session_id: string; todo_id: string } };
+    expect(data.session_task.session_id).toBe(s.session.id);
+    expect(data.session_task.todo_id).toBe(t.todo.id);
+  });
+
+  it("タスクリンク成功（pausedセッション）", async () => {
+    const sRes = await createSession({ title: "一時停止リンク", status: "paused" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "タスクB" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(201);
+  });
+
+  it("doneセッションへのリンクは403", async () => {
+    const sRes = await createSession({ title: "完了リンク" });
+    const s = await sRes.json() as { session: { id: string } };
+    await SELF.fetch(`http://localhost/api/sessions/${s.session.id}`, {
+      method: "PATCH", headers, body: JSON.stringify({ status: "done" }),
+    });
+    const tRes = await createTodo({ title: "タスクC" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(403);
+  });
+
+  it("削除済みセッションへのリンクは404", async () => {
+    const sRes = await createSession({ title: "削除リンク" });
+    const s = await sRes.json() as { session: { id: string } };
+    await SELF.fetch(`http://localhost/api/sessions/${s.session.id}`, { method: "DELETE", headers });
+    const tRes = await createTodo({ title: "タスクD" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(404);
+  });
+
+  it("存在しないタスクへのリンクは404", async () => {
+    const sRes = await createSession({ title: "不明タスクリンク" });
+    const s = await sRes.json() as { session: { id: string } };
+
+    const res = await linkTask(s.session.id, "nonexistent");
+    expect(res.status).toBe(404);
+  });
+
+  it("削除済みタスクへのリンクは404", async () => {
+    const sRes = await createSession({ title: "削除タスクリンク" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "削除されるタスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+    await SELF.fetch(`http://localhost/api/todos/${t.todo.id}`, { method: "DELETE", headers });
+
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(404);
+  });
+
+  it("重複リンクは409", async () => {
+    const sRes = await createSession({ title: "重複テスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "重複タスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t.todo.id);
+    const res = await linkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(409);
+  });
+
+  it("アンリンク成功", async () => {
+    const sRes = await createSession({ title: "アンリンクテスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "アンリンクタスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t.todo.id);
+    const res = await unlinkTask(s.session.id, t.todo.id);
+    expect(res.status).toBe(200);
+  });
+
+  it("存在しないリンクのアンリンクは404", async () => {
+    const sRes = await createSession({ title: "不明アンリンク" });
+    const s = await sRes.json() as { session: { id: string } };
+
+    const res = await unlinkTask(s.session.id, "nonexistent");
+    expect(res.status).toBe(404);
+  });
+
+  it("セッション詳細にlinked_tasksが含まれる", async () => {
+    const sRes = await createSession({ title: "詳細リンクテスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "リンクされたタスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t.todo.id);
+
+    const res = await SELF.fetch(`http://localhost/api/sessions/${s.session.id}`, { headers });
+    const data = await res.json() as { session: { linked_tasks: { id: string; title: string }[] } };
+    expect(data.session.linked_tasks.length).toBe(1);
+    expect(data.session.linked_tasks[0].title).toBe("リンクされたタスク");
+  });
+
+  it("セッション一覧にtask_total/task_completedが含まれる", async () => {
+    const sRes = await createSession({ title: "進捗テスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const t1Res = await createTodo({ title: "未完了タスク" });
+    const t1 = await t1Res.json() as { todo: { id: string } };
+    const t2Res = await createTodo({ title: "完了タスク", status: "completed" });
+    const t2 = await t2Res.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t1.todo.id);
+    await linkTask(s.session.id, t2.todo.id);
+
+    const res = await SELF.fetch("http://localhost/api/sessions", { headers });
+    const data = await res.json() as { sessions: { id: string; task_total: number; task_completed: number }[] };
+    const target = data.sessions.find(s2 => s2.id === s.session.id);
+    expect(target?.task_total).toBe(2);
+    expect(target?.task_completed).toBe(1);
+  });
+
+  it("リンク済みタスク一覧取得", async () => {
+    const sRes = await createSession({ title: "タスク一覧テスト" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "一覧タスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t.todo.id);
+
+    const res = await SELF.fetch(`http://localhost/api/sessions/${s.session.id}/tasks`, { headers });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { tasks: { id: string; title: string }[] };
+    expect(data.tasks.length).toBe(1);
+    expect(data.tasks[0].title).toBe("一覧タスク");
+  });
+
+  it("タスクの関連セッション一覧取得", async () => {
+    const sRes = await createSession({ title: "タスク→セッション" });
+    const s = await sRes.json() as { session: { id: string } };
+    const tRes = await createTodo({ title: "関連セッションタスク" });
+    const t = await tRes.json() as { todo: { id: string } };
+
+    await linkTask(s.session.id, t.todo.id);
+
+    const res = await SELF.fetch(`http://localhost/api/todos/${t.todo.id}/sessions`, { headers });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { sessions: { id: string; title: string }[] };
+    expect(data.sessions.length).toBe(1);
+    expect(data.sessions[0].title).toBe("タスク→セッション");
+  });
+});

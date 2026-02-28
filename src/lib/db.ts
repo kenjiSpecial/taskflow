@@ -33,6 +33,13 @@ export interface SessionLogRow {
   created_at: string;
 }
 
+export interface SessionTaskRow {
+  id: string;
+  session_id: string;
+  todo_id: string;
+  created_at: string;
+}
+
 export function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
