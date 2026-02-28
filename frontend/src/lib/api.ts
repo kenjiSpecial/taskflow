@@ -88,6 +88,16 @@ export interface WorkSession {
   updated_at: string;
   deleted_at: string | null;
   recent_logs?: SessionLog[];
+  linked_tasks?: Todo[];
+  task_total: number;
+  task_completed: number;
+}
+
+export interface SessionTask {
+  id: string;
+  session_id: string;
+  todo_id: string;
+  created_at: string;
 }
 
 export interface SessionLog {
@@ -143,4 +153,22 @@ export async function fetchSessionLogs(sessionId: string, params?: Record<string
 
 export async function createSessionLog(sessionId: string, data: { content: string; source?: string }): Promise<{ log: SessionLog }> {
   return request(`/api/sessions/${sessionId}/logs`, { method: "POST", body: JSON.stringify(data) });
+}
+
+// --- Session Tasks ---
+
+export async function fetchSessionTasks(sessionId: string): Promise<{ tasks: Todo[] }> {
+  return request(`/api/sessions/${sessionId}/tasks`);
+}
+
+export async function linkSessionTask(sessionId: string, todoId: string): Promise<{ session_task: SessionTask }> {
+  return request(`/api/sessions/${sessionId}/tasks`, { method: "POST", body: JSON.stringify({ todo_id: todoId }) });
+}
+
+export async function unlinkSessionTask(sessionId: string, todoId: string): Promise<void> {
+  await request(`/api/sessions/${sessionId}/tasks/${todoId}`, { method: "DELETE" });
+}
+
+export async function fetchTodoSessions(todoId: string): Promise<{ sessions: WorkSession[] }> {
+  return request(`/api/todos/${todoId}/sessions`);
 }

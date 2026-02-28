@@ -446,6 +446,84 @@ select:focus {
   min-height: 80px;
 }
 
+/* Task Linking */
+.task-search {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.task-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.task-search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.task-search-item:hover {
+  background: var(--surface-hover);
+}
+
+.task-search-empty {
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.linked-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.linked-task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.linked-task-item.completed .linked-task-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.linked-task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.linked-task-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.session-task-progress {
+  font-size: 0.75rem;
+  color: var(--success);
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .layout {
     grid-template-columns: 1fr;

@@ -1,9 +1,10 @@
 import { signal, computed } from "@preact/signals";
-import type { WorkSession, SessionLog, CreateSessionInput, UpdateSessionInput } from "../lib/api";
+import type { WorkSession, SessionLog, Todo, CreateSessionInput, UpdateSessionInput } from "../lib/api";
 import * as api from "../lib/api";
 
 export const sessions = signal<WorkSession[]>([]);
 export const sessionLogs = signal<SessionLog[]>([]);
+export const linkedTasks = signal<Todo[]>([]);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
@@ -67,4 +68,28 @@ export async function addSessionLog(sessionId: string, content: string) {
     s.id === sessionId ? { ...s, updated_at: res.log.created_at } : s,
   );
   return res.log;
+}
+
+// --- Session Tasks ---
+
+export async function loadLinkedTasks(sessionId: string) {
+  try {
+    const res = await api.fetchSessionTasks(sessionId);
+    linkedTasks.value = res.tasks;
+  } catch (e) {
+    error.value = (e as Error).message;
+  }
+}
+
+export async function linkTask(sessionId: string, todoId: string) {
+  await api.linkSessionTask(sessionId, todoId);
+  await loadLinkedTasks(sessionId);
+  // セッション一覧の進捗も更新
+  await loadSessions();
+}
+
+export async function unlinkTask(sessionId: string, todoId: string) {
+  await api.unlinkSessionTask(sessionId, todoId);
+  linkedTasks.value = linkedTasks.value.filter((t) => t.id !== todoId);
+  await loadSessions();
 }

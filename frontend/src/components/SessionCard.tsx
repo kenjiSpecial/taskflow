@@ -38,6 +38,11 @@ export function SessionCard({ session }: Props) {
         </div>
       )}
       <div class="session-card-footer">
+        {session.task_total > 0 && (
+          <span class="session-task-progress">
+            {session.task_completed}/{session.task_total}タスク完了
+          </span>
+        )}
         <span class="session-card-date">{formatDate(session.updated_at)}</span>
       </div>
     </div>
