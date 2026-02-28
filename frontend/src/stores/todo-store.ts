@@ -7,6 +7,11 @@ export const projects = signal<ProjectItem[]>([]);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
+export const dragState = signal<{
+  dragId: string | null;
+  dropTarget: { id: string; position: "before" | "inside" | "after" } | null;
+}>({ dragId: null, dropTarget: null });
+
 export const filter = signal<{
   status?: string;
   priority?: string;

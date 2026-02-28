@@ -1,9 +1,29 @@
 import { useSignal } from "@preact/signals";
 import type { Todo } from "../lib/api";
-import { editTodo, removeTodo, addTodo, toggleTodo, childrenMap, taskProgress } from "../stores/todo-store";
+import { editTodo, removeTodo, addTodo, toggleTodo, childrenMap, taskProgress, dragState, reorderTodosAction, parentTodos, todos } from "../stores/todo-store";
 
 interface Props {
   todo: Todo;
+}
+
+function getDropPosition(e: DragEvent, el: HTMLElement): "before" | "inside" | "after" {
+  const rect = el.getBoundingClientRect();
+  const y = e.clientY - rect.top;
+  const h = rect.height;
+  if (y < h * 0.25) return "before";
+  if (y > h * 0.75) return "after";
+  return "inside";
+}
+
+function canDropInside(dragId: string, targetTodo: Todo): boolean {
+  // ターゲットが子タスクなら、中にドロップ不可（3階層になる）
+  if (targetTodo.parent_id) return false;
+  // ドラッグ元が子持ちなら、中にドロップ不可（3階層になる）
+  const dragChildren = childrenMap.value.get(dragId) || [];
+  if (dragChildren.length > 0) return false;
+  // 自分自身にはドロップ不可
+  if (dragId === targetTodo.id) return false;
+  return true;
 }
 
 export function TodoItem({ todo }: Props) {
@@ -43,15 +63,87 @@ export function TodoItem({ todo }: Props) {
     expanded.value = true;
   };
 
+  // D&D handlers
+  const handleDragStart = (e: DragEvent) => {
+    e.stopPropagation();
+    dragState.value = { dragId: todo.id, dropTarget: null };
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", todo.id);
+    }
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { dragId } = dragState.value;
+    if (!dragId || dragId === todo.id) return;
+
+    const el = (e.currentTarget as HTMLElement);
+    let position = getDropPosition(e, el);
+
+    // inside判定時に2階層制限チェック
+    if (position === "inside" && !canDropInside(dragId, todo)) {
+      position = "before";
+    }
+
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+
+    dragState.value = { dragId, dropTarget: { id: todo.id, position } };
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.stopPropagation();
+    const { dragId } = dragState.value;
+    if (dragId) {
+      dragState.value = { dragId, dropTarget: null };
+    }
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { dragId, dropTarget } = dragState.value;
+    if (!dragId || !dropTarget) return;
+
+    executeDrop(dragId, dropTarget.id, dropTarget.position);
+    dragState.value = { dragId: null, dropTarget: null };
+  };
+
+  const handleDragEnd = () => {
+    dragState.value = { dragId: null, dropTarget: null };
+  };
+
   const priorityClass = `badge badge-${todo.priority}`;
   const priorityLabel = { high: "高", medium: "中", low: "低" }[todo.priority];
   const children = childrenMap.value.get(todo.id) || [];
   const progress = taskProgress.value.get(todo.id);
   const isChild = !!todo.parent_id;
 
+  // D&D visual state
+  const ds = dragState.value;
+  const isDragging = ds.dragId === todo.id;
+  const dropPos = ds.dropTarget?.id === todo.id ? ds.dropTarget.position : null;
+
+  let itemClass = `todo-item ${todo.status === "completed" ? "completed" : ""}`;
+  if (isDragging) itemClass += " dragging";
+  if (dropPos === "before") itemClass += " drag-over-before";
+  if (dropPos === "after") itemClass += " drag-over-after";
+  if (dropPos === "inside") itemClass += " drag-over-inside";
+
   return (
     <div>
-      <div class={`todo-item ${todo.status === "completed" ? "completed" : ""}`}>
+      <div
+        class={itemClass}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onDragEnd={handleDragEnd}
+      >
         {children.length > 0 && (
           <button
             class="btn-toggle"
@@ -143,4 +235,41 @@ export function TodoItem({ todo }: Props) {
       )}
     </div>
   );
+}
+
+function executeDrop(dragId: string, targetId: string, position: "before" | "inside" | "after") {
+  const allTodos = todos.value;
+  const dragTodo = allTodos.find((t) => t.id === dragId);
+  const targetTodo = allTodos.find((t) => t.id === targetId);
+  if (!dragTodo || !targetTodo) return;
+
+  if (position === "inside") {
+    // タスクをターゲットの子にする
+    const existingChildren = childrenMap.value.get(targetId) || [];
+    const maxOrder = existingChildren.reduce((max, c) => Math.max(max, c.sort_order), -1);
+    reorderTodosAction([{ id: dragId, sort_order: maxOrder + 1, parent_id: targetId }]);
+    return;
+  }
+
+  // before/after: 同一階層内での並び替え
+  const targetParentId = targetTodo.parent_id;
+
+  // ドラッグ元を同じ親の下に移動
+  const siblings = targetParentId
+    ? (childrenMap.value.get(targetParentId) || []).filter((t) => t.id !== dragId)
+    : parentTodos.value.filter((t) => t.id !== dragId);
+
+  const targetIdx = siblings.findIndex((t) => t.id === targetId);
+  const insertIdx = position === "before" ? targetIdx : targetIdx + 1;
+
+  const reordered = [...siblings];
+  reordered.splice(insertIdx, 0, dragTodo);
+
+  const items = reordered.map((t, i) => ({
+    id: t.id,
+    sort_order: i,
+    ...(t.id === dragId ? { parent_id: targetParentId } : {}),
+  }));
+
+  reorderTodosAction(items);
 }
