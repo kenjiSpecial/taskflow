@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import type { TodoRow, WorkSessionRow } from "../lib/db";
 import { now } from "../lib/db";
-import { createTodoSchema, updateTodoSchema, listTodosQuery } from "../validators/todo";
+import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema } from "../validators/todo";
 
 const app = new Hono<AppEnv>();
 
@@ -38,8 +38,13 @@ app.get("/", async (c) => {
     ? "CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END"
     : sort;
 
+  // sort_orderの場合、同値ではcreated_at DESCでフォールバック
+  const orderBy = sort === "sort_order"
+    ? `${sortCol} ${order.toUpperCase()}, created_at DESC`
+    : `${sortCol} ${order.toUpperCase()}`;
+
   const rows = await c.env.DB.prepare(
-    `SELECT * FROM todos WHERE ${where} ORDER BY ${sortCol} ${order.toUpperCase()} LIMIT ? OFFSET ?`,
+    `SELECT * FROM todos WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
   ).bind(...params, limit, offset).all<TodoRow>();
 
   return c.json({
@@ -66,6 +71,32 @@ app.get("/today", async (c) => {
   ).bind(todayStr).all<TodoRow>();
 
   return c.json({ todos: rows.results });
+});
+
+// PATCH /api/todos/reorder - 一括並び替え
+app.patch("/reorder", async (c) => {
+  const body = await c.req.json();
+  const parsed = reorderTodosSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid request body", details: parsed.error.flatten() } }, 400);
+  }
+
+  const { items } = parsed.data;
+  const timestamp = now();
+
+  const stmts = items.map((item) => {
+    if (item.parent_id !== undefined) {
+      return c.env.DB.prepare(
+        "UPDATE todos SET sort_order = ?, parent_id = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+      ).bind(item.sort_order, item.parent_id, timestamp, item.id);
+    }
+    return c.env.DB.prepare(
+      "UPDATE todos SET sort_order = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
+    ).bind(item.sort_order, timestamp, item.id);
+  });
+
+  await c.env.DB.batch(stmts);
+  return c.json({ success: true });
 });
 
 // GET /api/todos/:id - 詳細
@@ -154,6 +185,29 @@ app.patch("/:id", async (c) => {
 
   const data = parsed.data;
   const timestamp = now();
+
+  // parent_id 変更時の階層チェック
+  if (data.parent_id !== undefined && data.parent_id !== null) {
+    if (data.parent_id === id) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Cannot set self as parent" } }, 400);
+    }
+    const parent = await c.env.DB.prepare(
+      "SELECT parent_id FROM todos WHERE id = ? AND deleted_at IS NULL",
+    ).bind(data.parent_id).first<{ parent_id: string | null }>();
+    if (!parent) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Parent todo not found" } }, 400);
+    }
+    if (parent.parent_id) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Cannot create subtask of a subtask (max 2 levels)" } }, 400);
+    }
+    // 子持ちタスクを別タスクの子にしようとした場合（3階層防止）
+    const hasChildren = await c.env.DB.prepare(
+      "SELECT COUNT(*) as count FROM todos WHERE parent_id = ? AND deleted_at IS NULL",
+    ).bind(id).first<{ count: number }>();
+    if (hasChildren && hasChildren.count > 0) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Cannot nest a task that has children (max 2 levels)" } }, 400);
+    }
+  }
 
   // completed_at の自動管理
   let completedAt = existing.completed_at;

@@ -46,7 +46,7 @@ export async function loadTodos() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api.fetchTodos({ limit: "1000" });
+    const res = await api.fetchTodos({ limit: "1000", sort: "sort_order", order: "asc" });
     todos.value = res.todos;
   } catch (e) {
     error.value = (e as Error).message;

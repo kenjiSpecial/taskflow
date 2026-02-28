@@ -104,6 +104,105 @@ describe("Todos CRUD", () => {
     expect(grandchildRes.status).toBe(400);
   });
 
+  it("PATCH: parent_id自己参照は拒否", async () => {
+    const res = await createTodo({ title: "自己参照テスト" });
+    const todo = await res.json() as { todo: { id: string } };
+
+    const patchRes = await SELF.fetch(`http://localhost/api/todos/${todo.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ parent_id: todo.todo.id }),
+    });
+    expect(patchRes.status).toBe(400);
+  });
+
+  it("PATCH: 子を孫にする（2階層超え）は拒否", async () => {
+    const parentRes = await createTodo({ title: "PATCHテスト親" });
+    const parent = await parentRes.json() as { todo: { id: string } };
+
+    const childRes = await createTodo({ title: "PATCHテスト子", parent_id: parent.todo.id });
+    const child = await childRes.json() as { todo: { id: string } };
+
+    const otherChildRes = await createTodo({ title: "PATCHテスト他の子", parent_id: parent.todo.id });
+    const otherChild = await otherChildRes.json() as { todo: { id: string } };
+
+    // 子を他の子の子にしようとする → 拒否
+    const patchRes = await SELF.fetch(`http://localhost/api/todos/${child.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ parent_id: otherChild.todo.id }),
+    });
+    expect(patchRes.status).toBe(400);
+  });
+
+  it("PATCH: 子持ちタスクを別タスクの子にするのは拒否", async () => {
+    const parentRes = await createTodo({ title: "子持ち親" });
+    const parent = await parentRes.json() as { todo: { id: string } };
+
+    await createTodo({ title: "その子", parent_id: parent.todo.id });
+
+    const otherRes = await createTodo({ title: "別のタスク" });
+    const other = await otherRes.json() as { todo: { id: string } };
+
+    // 子持ち親を別タスクの子にしようとする → 拒否
+    const patchRes = await SELF.fetch(`http://localhost/api/todos/${parent.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ parent_id: other.todo.id }),
+    });
+    expect(patchRes.status).toBe(400);
+  });
+
+  it("PATCH: parent_idをnullに変更（トップレベルに戻す）", async () => {
+    const parentRes = await createTodo({ title: "戻すテスト親" });
+    const parent = await parentRes.json() as { todo: { id: string } };
+
+    const childRes = await createTodo({ title: "戻すテスト子", parent_id: parent.todo.id });
+    const child = await childRes.json() as { todo: { id: string } };
+
+    const patchRes = await SELF.fetch(`http://localhost/api/todos/${child.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ parent_id: null }),
+    });
+    expect(patchRes.status).toBe(200);
+    const data = await patchRes.json() as { todo: { parent_id: string | null } };
+    expect(data.todo.parent_id).toBeNull();
+  });
+
+  it("PATCH /reorder: 一括並び替え", async () => {
+    const res1 = await createTodo({ title: "並び替えA", sort_order: 0 });
+    const a = await res1.json() as { todo: { id: string } };
+    const res2 = await createTodo({ title: "並び替えB", sort_order: 1 });
+    const b = await res2.json() as { todo: { id: string } };
+
+    const reorderRes = await SELF.fetch("http://localhost/api/todos/reorder", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        items: [
+          { id: a.todo.id, sort_order: 1 },
+          { id: b.todo.id, sort_order: 0 },
+        ],
+      }),
+    });
+    expect(reorderRes.status).toBe(200);
+
+    // 確認
+    const getA = await SELF.fetch(`http://localhost/api/todos/${a.todo.id}`, { headers });
+    const dataA = await getA.json() as { todo: { sort_order: number } };
+    expect(dataA.todo.sort_order).toBe(1);
+  });
+
+  it("PATCH /reorder: 空配列は拒否", async () => {
+    const res = await SELF.fetch("http://localhost/api/todos/reorder", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ items: [] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("バリデーションエラー（タイトルなし）", async () => {
     const res = await createTodo({});
     expect(res.status).toBe(400);
