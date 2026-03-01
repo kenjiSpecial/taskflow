@@ -58,6 +58,17 @@ test/                 # Vitest テスト
 - タスク階層は2階層まで（親-子のみ）
 - APIはUTC保存、フロントでJST変換
 
+### Preact Signals ルール
+
+- コンポーネント内: `useComputed()` / `useSignal()` を使用
+- モジュールレベル（store等）: `computed()` / `signal()` を使用
+- コンポーネント内で `computed()` / `signal()` を使わない（メモリリーク）
+
+### ストア・API ルール
+
+- コンポーネントから `api.*` を直接呼ばない。必ずストア経由
+- D1のFK制約に依存しない。CREATE/UPDATEで `*_id` 参照先の存在チェック必須
+
 ## 環境変数
 
 - `.dev.vars` → ローカルバックエンド（`API_TOKEN`）
