@@ -1,6 +1,22 @@
 import { env } from "cloudflare:test";
 
 export async function applyMigrations() {
+  // Projects
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS projects (" +
+    "id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))))," +
+    "name TEXT NOT NULL CHECK(length(name) <= 100)," +
+    "description TEXT CHECK(length(description) <= 2000)," +
+    "color TEXT CHECK(length(color) <= 7)," +
+    "archived_at TEXT," +
+    "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
+    "updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
+    "deleted_at TEXT);"
+  );
+  await env.DB.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name ON projects(name) WHERE deleted_at IS NULL;");
+  await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_projects_deleted_at ON projects(deleted_at);");
+
+  // Todos
   await env.DB.exec(
     "CREATE TABLE IF NOT EXISTS todos (" +
     "id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))))," +
@@ -10,6 +26,7 @@ export async function applyMigrations() {
     "priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('high', 'medium', 'low'))," +
     "due_date TEXT," +
     "project TEXT," +
+    "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL," +
     "parent_id TEXT REFERENCES todos(id) ON DELETE SET NULL," +
     "sort_order INTEGER NOT NULL DEFAULT 0," +
     "completed_at TEXT," +
@@ -21,6 +38,7 @@ export async function applyMigrations() {
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_priority ON todos(priority);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_due_date ON todos(due_date);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_project ON todos(project);");
+  await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_project_id ON todos(project_id);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_parent_id ON todos(parent_id);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_todos_deleted_at ON todos(deleted_at);");
 
@@ -31,6 +49,7 @@ export async function applyMigrations() {
     "title TEXT NOT NULL CHECK(length(title) <= 200)," +
     "description TEXT CHECK(length(description) <= 2000)," +
     "project TEXT CHECK(length(project) <= 100)," +
+    "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL," +
     "status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'done'))," +
     "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
     "updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
@@ -38,6 +57,7 @@ export async function applyMigrations() {
   );
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_work_sessions_status ON work_sessions(status);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_work_sessions_project ON work_sessions(project);");
+  await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_work_sessions_project_id ON work_sessions(project_id);");
   await env.DB.exec("CREATE INDEX IF NOT EXISTS idx_work_sessions_deleted_at ON work_sessions(deleted_at);");
 
   // Session Logs
