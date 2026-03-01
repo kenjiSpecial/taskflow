@@ -57,7 +57,7 @@ export function TodoItem({ todo }: Props) {
   const handleAddChild = async () => {
     const title = childTitle.value.trim();
     if (!title) return;
-    await addTodo({ title, parent_id: todo.id, project: todo.project || undefined });
+    await addTodo({ title, parent_id: todo.id, project_id: todo.project_id });
     childTitle.value = "";
     addingChild.value = false;
     expanded.value = true;

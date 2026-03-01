@@ -1,35 +1,17 @@
 import { signal, computed } from "@preact/signals";
-import type { Todo, ProjectItem, CreateTodoInput, UpdateTodoInput } from "../lib/api";
+import type { Todo, CreateTodoInput, UpdateTodoInput } from "../lib/api";
 import * as api from "../lib/api";
+import { loadProjects } from "./project-store";
 
 export const todos = signal<Todo[]>([]);
-export const projects = signal<ProjectItem[]>([]);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
 export const dragState = signal<{
   dragId: string | null;
   dropTarget: { id: string; position: "before" | "inside" | "after" } | null;
+  dropProjectId?: string | null;
 }>({ dragId: null, dropTarget: null });
-
-export const filter = signal<{
-  status?: string;
-  priority?: string;
-  project?: string;
-}>({});
-
-export const filteredTodos = computed(() => {
-  return todos.value.filter((todo) => {
-    if (filter.value.status && todo.status !== filter.value.status) return false;
-    if (filter.value.priority && todo.priority !== filter.value.priority) return false;
-    if (filter.value.project && todo.project !== filter.value.project) return false;
-    return true;
-  });
-});
-
-export const parentTodos = computed(() =>
-  filteredTodos.value.filter((t) => !t.parent_id),
-);
 
 export const childrenMap = computed(() => {
   const map = new Map<string, Todo[]>();
@@ -42,6 +24,12 @@ export const childrenMap = computed(() => {
   }
   return map;
 });
+
+export const parentTodos = computed(() =>
+  todos.value
+    .filter((t) => !t.parent_id && t.status !== "completed")
+    .sort((a, b) => a.sort_order - b.sort_order),
+);
 
 export const taskProgress = computed(() => {
   const progress = new Map<string, { completed: number; total: number }>();
@@ -56,10 +44,6 @@ export const taskProgress = computed(() => {
   return progress;
 });
 
-export const activeCount = computed(
-  () => todos.value.filter((t) => t.status !== "completed").length,
-);
-
 export async function loadTodos() {
   loading.value = true;
   error.value = null;
@@ -70,15 +54,6 @@ export async function loadTodos() {
     error.value = (e as Error).message;
   } finally {
     loading.value = false;
-  }
-}
-
-export async function loadProjects() {
-  try {
-    const res = await api.fetchProjects();
-    projects.value = res.projects;
-  } catch (e) {
-    console.error("Failed to load projects:", e);
   }
 }
 
@@ -113,6 +88,20 @@ export async function toggleTodo(id: string, currentStatus: string) {
         }
       }
     }
+  }
+}
+
+export async function changeTaskProject(taskId: string, projectId: string | null) {
+  const prev = todos.value;
+  // 楽観的更新
+  todos.value = todos.value.map((t) =>
+    t.id === taskId ? { ...t, project_id: projectId } : t,
+  );
+  try {
+    await api.updateTodo(taskId, { project_id: projectId });
+    loadProjects();
+  } catch {
+    todos.value = prev;
   }
 }
 

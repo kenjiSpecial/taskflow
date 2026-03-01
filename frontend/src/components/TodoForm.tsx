@@ -1,7 +1,11 @@
 import { useSignal } from "@preact/signals";
 import { addTodo } from "../stores/todo-store";
 
-export function TodoForm() {
+interface Props {
+  projectId?: string | null;
+}
+
+export function TodoForm({ projectId }: Props) {
   const title = useSignal("");
   const submitting = useSignal(false);
   const handleSubmit = async (e: Event) => {
@@ -11,7 +15,7 @@ export function TodoForm() {
 
     submitting.value = true;
     try {
-      await addTodo({ title: value });
+      await addTodo({ title: value, project_id: projectId });
       title.value = "";
     } finally {
       submitting.value = false;
