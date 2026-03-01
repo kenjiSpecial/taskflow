@@ -14,7 +14,7 @@ import {
   linkTask,
   unlinkTask,
 } from "../stores/session-store";
-import * as api from "../lib/api";
+import { todos, toggleTodo } from "../stores/todo-store";
 import type { Todo } from "../lib/api";
 
 const statusLabel: Record<string, string> = {
@@ -36,41 +36,19 @@ function formatDate(iso: string): string {
 
 function TaskSearch({ sessionId }: { sessionId: string }) {
   const query = useSignal("");
-  const results = useSignal<Todo[]>([]);
-  const searching = useSignal(false);
   const showResults = useSignal(false);
 
-  useEffect(() => {
-    if (query.value.length === 0) {
-      results.value = [];
-      showResults.value = false;
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      searching.value = true;
-      try {
-        const res = await api.fetchTodos({ limit: "20" });
-        const q = query.value.toLowerCase();
-        const linkedIds = new Set(linkedTasks.value.map((t) => t.id));
-        results.value = res.todos.filter(
-          (t) => t.title.toLowerCase().includes(q) && !linkedIds.has(t.id),
-        );
-        showResults.value = true;
-      } catch {
-        results.value = [];
-      } finally {
-        searching.value = false;
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query.value]);
+  const linkedIds = new Set(linkedTasks.value.map((t) => t.id));
+  const q = query.value.toLowerCase();
+  const results = q.length > 0
+    ? todos.value.filter(
+        (t) => t.title.toLowerCase().includes(q) && !linkedIds.has(t.id) && t.status !== "completed",
+      ).slice(0, 20)
+    : [];
 
   const handleSelect = async (todoId: string) => {
     await linkTask(sessionId, todoId);
     query.value = "";
-    results.value = [];
     showResults.value = false;
   };
 
@@ -80,15 +58,18 @@ function TaskSearch({ sessionId }: { sessionId: string }) {
         type="text"
         placeholder="タスクを検索して紐付け..."
         value={query.value}
-        onInput={(e) => (query.value = (e.target as HTMLInputElement).value)}
+        onInput={(e) => {
+          query.value = (e.target as HTMLInputElement).value;
+          showResults.value = true;
+        }}
         onBlur={() => setTimeout(() => (showResults.value = false), 200)}
         onFocus={() => {
-          if (results.value.length > 0) showResults.value = true;
+          if (results.length > 0) showResults.value = true;
         }}
       />
-      {showResults.value && results.value.length > 0 && (
+      {showResults.value && results.length > 0 && (
         <div class="task-search-results">
-          {results.value.map((todo) => (
+          {results.map((todo) => (
             <div
               key={todo.id}
               class="task-search-item"
@@ -100,7 +81,7 @@ function TaskSearch({ sessionId }: { sessionId: string }) {
           ))}
         </div>
       )}
-      {showResults.value && query.value.length > 0 && results.value.length === 0 && !searching.value && (
+      {showResults.value && query.value.length > 0 && results.length === 0 && (
         <div class="task-search-results">
           <div class="task-search-empty">該当するタスクがありません</div>
         </div>
@@ -145,10 +126,8 @@ export function SessionInlineDetail() {
   };
 
   const handleToggleTodo = async (todo: Todo) => {
-    const newStatus = todo.status === "completed" ? "pending" : "completed";
-    await api.updateTodo(todo.id, { status: newStatus });
+    await toggleTodo(todo.id, todo.status);
     await loadLinkedTasks(sessionId);
-    await loadSessions();
   };
 
   const isDone = session.status === "done";

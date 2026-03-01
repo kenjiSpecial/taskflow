@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import type { WorkSessionRow, SessionLogRow, SessionTaskRow, TodoRow } from "../lib/db";
-import { now } from "../lib/db";
+import { now, projectExists } from "../lib/db";
 import {
   createSessionSchema,
   updateSessionSchema,
@@ -97,6 +97,14 @@ app.post("/", async (c) => {
   }
 
   const data = parsed.data;
+
+  // project_id 存在チェック
+  if (data.project_id) {
+    if (!(await projectExists(c.env.DB, data.project_id))) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Project not found" } }, 400);
+    }
+  }
+
   const id = crypto.randomUUID().replace(/-/g, "");
   const timestamp = now();
 
@@ -137,6 +145,13 @@ app.patch("/:id", async (c) => {
 
   const data = parsed.data;
   const timestamp = now();
+
+  // project_id 存在チェック
+  if (data.project_id) {
+    if (!(await projectExists(c.env.DB, data.project_id))) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Project not found" } }, 400);
+    }
+  }
 
   const sets: string[] = [];
   const params: unknown[] = [];

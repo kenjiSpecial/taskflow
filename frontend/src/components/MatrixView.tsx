@@ -1,4 +1,4 @@
-import { computed } from "@preact/signals";
+import { useComputed } from "@preact/signals";
 import { visibleProjects } from "../stores/project-store";
 import { todos } from "../stores/todo-store";
 import { sessions } from "../stores/session-store";
@@ -6,7 +6,7 @@ import { MatrixHeader } from "./MatrixHeader";
 import { MatrixRow } from "./MatrixRow";
 
 export function MatrixView() {
-  const uncategorizedExists = computed(() =>
+  const uncategorizedExists = useComputed(() =>
     todos.value.some((t) => !t.project_id && t.status !== "completed") ||
     sessions.value.some((s) => !s.project_id),
   );

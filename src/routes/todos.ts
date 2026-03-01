@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import type { TodoRow, WorkSessionRow } from "../lib/db";
-import { now } from "../lib/db";
+import { now, projectExists } from "../lib/db";
 import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema } from "../validators/todo";
 
 const app = new Hono<AppEnv>();
@@ -130,6 +130,13 @@ app.post("/", async (c) => {
 
   const data = parsed.data;
 
+  // project_id 存在チェック
+  if (data.project_id) {
+    if (!(await projectExists(c.env.DB, data.project_id))) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Project not found" } }, 400);
+    }
+  }
+
   // 親タスクの階層チェック（2階層まで）
   if (data.parent_id) {
     const parent = await c.env.DB.prepare(
@@ -189,6 +196,13 @@ app.patch("/:id", async (c) => {
 
   const data = parsed.data;
   const timestamp = now();
+
+  // project_id 存在チェック
+  if (data.project_id) {
+    if (!(await projectExists(c.env.DB, data.project_id))) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Project not found" } }, 400);
+    }
+  }
 
   // parent_id 変更時の階層チェック
   if (data.parent_id !== undefined && data.parent_id !== null) {

@@ -56,3 +56,10 @@ export interface SessionTaskRow {
 export function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
+
+export async function projectExists(db: D1Database, projectId: string): Promise<boolean> {
+  const row = await db.prepare(
+    "SELECT 1 FROM projects WHERE id = ? AND deleted_at IS NULL",
+  ).bind(projectId).first();
+  return row !== null;
+}
