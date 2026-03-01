@@ -13,7 +13,7 @@ app.get("/", async (c) => {
     return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid query parameters", details: parsed.error.flatten() } }, 400);
   }
 
-  const { status, priority, project, sort, order, limit, offset } = parsed.data;
+  const { status, priority, project, project_id, sort, order, limit, offset } = parsed.data;
   const conditions: string[] = ["deleted_at IS NULL"];
   const params: unknown[] = [];
 
@@ -25,7 +25,10 @@ app.get("/", async (c) => {
     conditions.push("priority = ?");
     params.push(priority);
   }
-  if (project) {
+  if (project_id) {
+    conditions.push("project_id = ?");
+    params.push(project_id);
+  } else if (project) {
     conditions.push("project = ?");
     params.push(project);
   }
@@ -145,8 +148,8 @@ app.post("/", async (c) => {
   const timestamp = now();
 
   const todo = await c.env.DB.prepare(
-    `INSERT INTO todos (id, title, description, status, priority, due_date, project, parent_id, sort_order, completed_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO todos (id, title, description, status, priority, due_date, project, project_id, parent_id, sort_order, completed_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   ).bind(
     id,
@@ -156,6 +159,7 @@ app.post("/", async (c) => {
     data.priority,
     data.due_date ?? null,
     data.project ?? null,
+    data.project_id ?? null,
     data.parent_id ?? null,
     data.sort_order,
     data.status === "completed" ? timestamp : null,
@@ -220,7 +224,7 @@ app.patch("/:id", async (c) => {
   const sets: string[] = [];
   const params: unknown[] = [];
 
-  const fields = ["title", "description", "status", "priority", "due_date", "project", "parent_id", "sort_order"] as const;
+  const fields = ["title", "description", "status", "priority", "due_date", "project", "project_id", "parent_id", "sort_order"] as const;
   for (const field of fields) {
     if (data[field] !== undefined) {
       sets.push(`${field} = ?`);

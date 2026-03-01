@@ -20,7 +20,7 @@ app.get("/", async (c) => {
     return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid query parameters", details: parsed.error.flatten() } }, 400);
   }
 
-  const { status, project, sort, order, limit, offset } = parsed.data;
+  const { status, project, project_id, sort, order, limit, offset } = parsed.data;
   const conditions: string[] = ["ws.deleted_at IS NULL"];
   const params: unknown[] = [];
 
@@ -28,7 +28,10 @@ app.get("/", async (c) => {
     conditions.push("ws.status = ?");
     params.push(status);
   }
-  if (project) {
+  if (project_id) {
+    conditions.push("ws.project_id = ?");
+    params.push(project_id);
+  } else if (project) {
     conditions.push("ws.project = ?");
     params.push(project);
   }
@@ -98,14 +101,15 @@ app.post("/", async (c) => {
   const timestamp = now();
 
   const session = await c.env.DB.prepare(
-    `INSERT INTO work_sessions (id, title, description, project, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO work_sessions (id, title, description, project, project_id, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   ).bind(
     id,
     data.title,
     data.description ?? null,
     data.project ?? null,
+    data.project_id ?? null,
     data.status,
     timestamp,
     timestamp,
@@ -137,7 +141,7 @@ app.patch("/:id", async (c) => {
   const sets: string[] = [];
   const params: unknown[] = [];
 
-  const fields = ["title", "description", "project", "status"] as const;
+  const fields = ["title", "description", "project", "project_id", "status"] as const;
   for (const field of fields) {
     if (data[field] !== undefined) {
       sets.push(`${field} = ?`);

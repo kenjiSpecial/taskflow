@@ -4,6 +4,7 @@ export const createSessionSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   project: z.string().max(100).optional(),
+  project_id: z.string().nullable().optional(),
   status: z.enum(["active", "paused", "done"]).default("active"),
 });
 
@@ -12,6 +13,7 @@ export const updateSessionSchema = createSessionSchema.partial();
 export const listSessionsQuery = z.object({
   status: z.enum(["active", "paused", "done"]).optional(),
   project: z.string().optional(),
+  project_id: z.string().optional(),
   sort: z.enum(["created_at", "updated_at"]).default("updated_at"),
   order: z.enum(["asc", "desc"]).default("desc"),
   limit: z.coerce.number().int().min(1).max(100).default(50),

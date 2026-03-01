@@ -1,3 +1,14 @@
+export interface ProjectRow {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface TodoRow {
   id: string;
   title: string;
@@ -6,6 +17,7 @@ export interface TodoRow {
   priority: string;
   due_date: string | null;
   project: string | null;
+  project_id: string | null;
   parent_id: string | null;
   sort_order: number;
   completed_at: string | null;
@@ -19,6 +31,7 @@ export interface WorkSessionRow {
   title: string;
   description: string | null;
   project: string | null;
+  project_id: string | null;
   status: string;
   created_at: string;
   updated_at: string;
