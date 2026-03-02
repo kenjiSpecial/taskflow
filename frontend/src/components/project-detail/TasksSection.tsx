@@ -1,8 +1,10 @@
 import { useSignal } from "@preact/signals";
 import type { Todo } from "../../lib/api";
+import { addTodo, toggleTodo, editTodo, removeTodo } from "../../stores/todo-store";
 
 interface Props {
   todos: Todo[];
+  projectId: string;
 }
 
 function groupByStatus(todos: Todo[]) {
@@ -32,7 +34,27 @@ function priorityColor(priority: string): string {
 }
 
 function TodoItem({ todo, children }: { todo: Todo; children: Todo[] }) {
+  const editing = useSignal(false);
+  const editTitle = useSignal(todo.title);
   const isCompleted = todo.status === "completed";
+
+  const handleToggle = async () => {
+    await toggleTodo(todo.id, todo.status);
+  };
+
+  const handleSave = async () => {
+    const title = editTitle.value.trim();
+    if (!title) { editing.value = false; return; }
+    if (title !== todo.title) {
+      await editTodo(todo.id, { title });
+    }
+    editing.value = false;
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`タスク「${todo.title}」を削除しますか？`)) return;
+    await removeTodo(todo.id);
+  };
 
   return (
     <div class="group">
@@ -40,26 +62,54 @@ function TodoItem({ todo, children }: { todo: Todo; children: Todo[] }) {
         <input
           type="checkbox"
           checked={isCompleted}
+          onChange={handleToggle}
           class="w-4 h-4 accent-[var(--accent)] cursor-pointer flex-shrink-0"
-          disabled
         />
-        <span class={`text-sm flex-1 min-w-0 truncate ${isCompleted ? "line-through text-app-text-muted" : ""}`}>
-          {todo.title}
-        </span>
-        {todo.priority !== "low" && (
+        {editing.value ? (
+          <input
+            type="text"
+            class="flex-1 text-sm bg-app-surface border border-app-border rounded px-2 py-0.5 outline-none focus:border-app-accent"
+            value={editTitle.value}
+            onInput={(e) => (editTitle.value = (e.target as HTMLInputElement).value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") (editing.value = false);
+            }}
+            // biome-ignore lint: autofocus is intentional
+            autoFocus
+          />
+        ) : (
+          <span
+            class={`text-sm flex-1 min-w-0 truncate cursor-pointer ${isCompleted ? "line-through text-app-text-muted" : ""}`}
+            onDblClick={() => {
+              editTitle.value = todo.title;
+              editing.value = true;
+            }}
+          >
+            {todo.title}
+          </span>
+        )}
+        {!editing.value && todo.priority !== "low" && (
           <span class={`text-xs font-medium ${priorityColor(todo.priority)}`}>
             {todo.priority === "high" ? "!!!" : "!!"}
           </span>
         )}
-        {todo.tags && todo.tags.length > 0 && (
+        {!editing.value && todo.tags && todo.tags.length > 0 && (
           <div class="flex gap-1 flex-shrink-0">
             {todo.tags.map((tag) => (
-              <span key={tag.id} class="text-[0.625rem] px-1.5 py-0 rounded-full bg-app-surface text-app-text-muted">
+              <span key={tag.id} class="text-[0.625rem] px-1.5 rounded-full bg-app-surface text-app-text-muted">
                 {tag.name}
               </span>
             ))}
           </div>
         )}
+        <button
+          class="text-xs text-app-text-muted hover:text-app-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          onClick={handleDelete}
+          title="削除"
+        >
+          ✕
+        </button>
       </div>
       {children.length > 0 && (
         <div class="ml-6 border-l border-app-border pl-2">
@@ -72,27 +122,61 @@ function TodoItem({ todo, children }: { todo: Todo; children: Todo[] }) {
   );
 }
 
-export function TasksSection({ todos }: Props) {
+export function TasksSection({ todos, projectId }: Props) {
   const showCompleted = useSignal(false);
+  const adding = useSignal(false);
+  const newTitle = useSignal("");
   const { inProgress, pending, completed, childMap } = groupByStatus(todos);
 
-  if (todos.length === 0) {
-    return (
-      <section class="mb-6">
-        <h2 class="text-sm font-semibold text-app-text-muted uppercase tracking-wide mb-3">
-          タスク
-        </h2>
-        <p class="text-sm text-app-text-muted py-4 text-center">タスクはまだありません</p>
-      </section>
-    );
-  }
+  const handleAdd = async () => {
+    const title = newTitle.value.trim();
+    if (!title) return;
+    await addTodo({ title, project_id: projectId });
+    newTitle.value = "";
+    adding.value = false;
+  };
 
   return (
     <section class="mb-6">
-      <h2 class="text-sm font-semibold text-app-text-muted uppercase tracking-wide mb-3">
-        タスク
-        <span class="text-xs font-normal ml-2">({todos.filter((t) => t.status !== "completed").length} 未完了)</span>
-      </h2>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-app-text-muted uppercase tracking-wide">
+          タスク
+          {todos.length > 0 && (
+            <span class="text-xs font-normal ml-2">({todos.filter((t) => t.status !== "completed").length} 未完了)</span>
+          )}
+        </h2>
+        <button
+          class="text-xs text-app-accent hover:text-app-accent-hover"
+          onClick={() => (adding.value = !adding.value)}
+        >
+          + 追加
+        </button>
+      </div>
+
+      {adding.value && (
+        <div class="flex gap-2 mb-3">
+          <input
+            type="text"
+            class="flex-1 text-sm bg-app-surface border border-app-border rounded-md px-3 py-1.5 outline-none focus:border-app-accent"
+            placeholder="タスク名..."
+            value={newTitle.value}
+            onInput={(e) => (newTitle.value = (e.target as HTMLInputElement).value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdd();
+              if (e.key === "Escape") (adding.value = false);
+            }}
+            // biome-ignore lint: autofocus is intentional
+            autoFocus
+          />
+          <button class="text-xs bg-app-accent text-white rounded-md px-3 py-1.5 hover:bg-app-accent-hover" onClick={handleAdd}>
+            追加
+          </button>
+        </div>
+      )}
+
+      {todos.length === 0 && !adding.value && (
+        <p class="text-sm text-app-text-muted py-4 text-center">タスクはまだありません</p>
+      )}
 
       {inProgress.length > 0 && (
         <div class="mb-3">
@@ -117,6 +201,7 @@ export function TasksSection({ todos }: Props) {
           <button
             class="text-xs text-app-text-muted hover:text-app-text mb-1 px-2 flex items-center gap-1"
             onClick={() => (showCompleted.value = !showCompleted.value)}
+            aria-expanded={showCompleted.value}
           >
             <span class="text-[0.625rem]">{showCompleted.value ? "▼" : "▶"}</span>
             完了 ({completed.length})

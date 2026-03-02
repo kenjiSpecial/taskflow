@@ -43,8 +43,8 @@ export function ProjectDetailPage({ projectId }: Props) {
     <div class="max-w-4xl mx-auto">
       <ProjectHeader project={project.value} />
       <SummaryCards todos={projectTodos.value} sessions={projectSessions.value} />
-      <ActiveSessionsSection sessions={projectSessions.value} />
-      <TasksSection todos={projectTodos.value} />
+      <ActiveSessionsSection sessions={projectSessions.value} projectId={projectId} />
+      <TasksSection todos={projectTodos.value} projectId={projectId} />
       <PausedSessionsSection sessions={projectSessions.value} />
       <DoneSessionsSection sessions={projectSessions.value} />
     </div>

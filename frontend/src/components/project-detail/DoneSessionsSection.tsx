@@ -1,5 +1,7 @@
 import { useSignal } from "@preact/signals";
 import type { WorkSession } from "../../lib/api";
+import { detailExpandedSessionId } from "../../stores/app-store";
+import { SessionDetailPanel } from "./SessionDetailPanel";
 
 const DONE_LIMIT = 3;
 
@@ -34,18 +36,28 @@ export function DoneSessionsSection({ sessions }: Props) {
       </button>
       <div class="flex flex-col gap-2">
         {visible.map((session) => (
-          <div
-            key={session.id}
-            class="rounded-lg bg-app-surface border border-app-border p-3 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-sm">{session.title}</span>
-              <span class="text-xs text-app-text-muted">{formatDate(session.updated_at)}</span>
+          <div key={session.id}>
+            <div
+              class={`rounded-lg bg-app-surface border p-3 opacity-70 hover:opacity-100 transition-opacity cursor-pointer ${
+                detailExpandedSessionId.value === session.id ? "border-app-accent opacity-100" : "border-app-border"
+              }`}
+              onClick={() => {
+                detailExpandedSessionId.value =
+                  detailExpandedSessionId.value === session.id ? null : session.id;
+              }}
+            >
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-sm">{session.title}</span>
+                <span class="text-xs text-app-text-muted">{formatDate(session.updated_at)}</span>
+              </div>
+              {session.task_total > 0 && (
+                <span class="text-xs text-app-text-muted mt-1">
+                  {session.task_completed}/{session.task_total} タスク完了
+                </span>
+              )}
             </div>
-            {session.task_total > 0 && (
-              <span class="text-xs text-app-text-muted mt-1">
-                {session.task_completed}/{session.task_total} タスク完了
-              </span>
+            {detailExpandedSessionId.value === session.id && (
+              <SessionDetailPanel sessionId={session.id} />
             )}
           </div>
         ))}
