@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import type { TodoRow, WorkSessionRow } from "../lib/db";
-import { now, projectExists } from "../lib/db";
+import type { TodoRow, WorkSessionRow, TagRow } from "../lib/db";
+import { now, projectExists, tagExists } from "../lib/db";
 import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema } from "../validators/todo";
+import { tagLinkSchema } from "../validators/tag";
 
 const app = new Hono<AppEnv>();
 
@@ -277,6 +278,83 @@ app.get("/:id/sessions", async (c) => {
   return c.json({ sessions: sessions.results });
 });
 
+// GET /api/todos/:id/tags - タスクのタグ一覧
+app.get("/:id/tags", async (c) => {
+  const id = c.req.param("id");
+
+  const todo = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first();
+
+  if (!todo) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
+  }
+
+  const rows = await c.env.DB.prepare(
+    `SELECT t.* FROM tags t
+     JOIN todo_tags tt ON tt.tag_id = t.id
+     WHERE tt.todo_id = ? AND t.deleted_at IS NULL
+     ORDER BY t.is_preset DESC, t.name ASC`,
+  ).bind(id).all<TagRow>();
+
+  return c.json({ tags: rows.results });
+});
+
+// POST /api/todos/:id/tags - タグ紐付け
+app.post("/:id/tags", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  const parsed = tagLinkSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid request body", details: parsed.error.flatten() } }, 400);
+  }
+
+  const todo = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first();
+
+  if (!todo) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
+  }
+
+  if (!(await tagExists(c.env.DB, parsed.data.tag_id))) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Tag not found" } }, 400);
+  }
+
+  const existing = await c.env.DB.prepare(
+    "SELECT id FROM todo_tags WHERE todo_id = ? AND tag_id = ?",
+  ).bind(id, parsed.data.tag_id).first();
+
+  if (existing) {
+    return c.json({ error: { code: "CONFLICT", message: "Tag already linked" } }, 409);
+  }
+
+  await c.env.DB.prepare(
+    "INSERT INTO todo_tags (todo_id, tag_id) VALUES (?, ?)",
+  ).bind(id, parsed.data.tag_id).run();
+
+  return c.json({ success: true }, 201);
+});
+
+// DELETE /api/todos/:id/tags/:tagId - タグ紐付け解除
+app.delete("/:id/tags/:tagId", async (c) => {
+  const { id, tagId } = c.req.param();
+
+  const link = await c.env.DB.prepare(
+    "SELECT id FROM todo_tags WHERE todo_id = ? AND tag_id = ?",
+  ).bind(id, tagId).first();
+
+  if (!link) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Tag link not found" } }, 404);
+  }
+
+  await c.env.DB.prepare(
+    "DELETE FROM todo_tags WHERE todo_id = ? AND tag_id = ?",
+  ).bind(id, tagId).run();
+
+  return c.json({ success: true });
+});
+
 // DELETE /api/todos/:id - 論理削除
 app.delete("/:id", async (c) => {
   const id = c.req.param("id");
@@ -290,8 +368,9 @@ app.delete("/:id", async (c) => {
 
   const timestamp = now();
 
-  // 親タスクの場合、子タスクも論理削除
+  // タグ紐付け削除 + 親タスクの場合、子タスクも論理削除
   await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM todo_tags WHERE todo_id = ?").bind(id),
     c.env.DB.prepare("UPDATE todos SET deleted_at = ?, updated_at = ? WHERE id = ?").bind(timestamp, timestamp, id),
     c.env.DB.prepare("UPDATE todos SET deleted_at = ?, updated_at = ? WHERE parent_id = ? AND deleted_at IS NULL").bind(timestamp, timestamp, id),
   ]);

@@ -53,6 +53,30 @@ export interface SessionTaskRow {
   created_at: string;
 }
 
+export interface TagRow {
+  id: string;
+  name: string;
+  color: string | null;
+  is_preset: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface ProjectTagRow {
+  id: string;
+  project_id: string;
+  tag_id: string;
+  created_at: string;
+}
+
+export interface TodoTagRow {
+  id: string;
+  todo_id: string;
+  tag_id: string;
+  created_at: string;
+}
+
 export function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -61,5 +85,12 @@ export async function projectExists(db: D1Database, projectId: string): Promise<
   const row = await db.prepare(
     "SELECT 1 FROM projects WHERE id = ? AND deleted_at IS NULL",
   ).bind(projectId).first();
+  return row !== null;
+}
+
+export async function tagExists(db: D1Database, tagId: string): Promise<boolean> {
+  const row = await db.prepare(
+    "SELECT 1 FROM tags WHERE id = ? AND deleted_at IS NULL",
+  ).bind(tagId).first();
   return row !== null;
 }
