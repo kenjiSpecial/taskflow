@@ -1,4 +1,5 @@
 import { useSignal } from "@preact/signals";
+import { Link } from "wouter-preact";
 import { editProject, archiveProject, unarchiveProject, removeProject } from "../stores/project-store";
 import { loadTodos } from "../stores/todo-store";
 import { loadSessions } from "../stores/session-store";
@@ -140,7 +141,13 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
       ) : (
         <>
           <div class="project-cell-name">
-            <span class="project-name-text">{projectName}</span>
+            {projectId ? (
+              <Link href={`/projects/${projectId}`} class="project-name-text" style={{ color: "inherit", textDecoration: "none" }}>
+                {projectName}
+              </Link>
+            ) : (
+              <span class="project-name-text">{projectName}</span>
+            )}
             {projectId && (
               <div class="project-menu-wrapper">
                 <button
