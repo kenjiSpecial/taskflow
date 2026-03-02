@@ -330,7 +330,7 @@ cmd_start() {
   # workspace作成（Claude Code を自動起動）
   log_info "cmux workspace を作成中..."
   local ws_output workspace_id
-  local claude_cmd="claude --prompt '$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")'"
+  local claude_cmd="claude '$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")'"
   ws_output=$(cmux --id-format uuids new-workspace --command "$claude_cmd" 2>/dev/null) || die "cmux workspace の作成に失敗しました"
   # 出力形式: "OK <UUID>"
   workspace_id=$(echo "$ws_output" | awk '{print $2}')
