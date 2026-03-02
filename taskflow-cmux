@@ -257,7 +257,7 @@ update_sidebar() {
     paused) color="yellow"; icon="⏸" ;;
     *)      color="gray"; icon="○" ;;
   esac
-  cmux set-status taskflow "$session_status" --icon "$icon" --color "$color" --workspace "$workspace_id" 2>/dev/null || true
+  cmux set-status taskflow "$session_status" --icon "$icon" --color "$color" --workspace "$workspace_id" >/dev/null 2>&1 || true
 
   # Progress bar
   local total completed progress_value
@@ -266,20 +266,20 @@ update_sidebar() {
 
   if [[ "$total" -gt 0 ]]; then
     progress_value=$(echo "scale=2; $completed / $total" | bc)
-    cmux set-progress "$progress_value" --label "${completed}/${total} tasks" --workspace "$workspace_id" 2>/dev/null || true
+    cmux set-progress "$progress_value" --label "${completed}/${total} tasks" --workspace "$workspace_id" >/dev/null 2>&1 || true
   else
-    cmux clear-progress --workspace "$workspace_id" 2>/dev/null || true
+    cmux clear-progress --workspace "$workspace_id" >/dev/null 2>&1 || true
   fi
 
   # Task list as log entries
-  cmux clear-log --workspace "$workspace_id" 2>/dev/null || true
+  cmux clear-log --workspace "$workspace_id" >/dev/null 2>&1 || true
   echo "$tasks_json" | jq -r '.[] | "\(.status)\t\(.title)"' | while IFS=$'\t' read -r status title; do
     case "$status" in
       completed)
-        cmux log --level success --workspace "$workspace_id" -- "✓ ${title}" 2>/dev/null || true
+        cmux log --level success --workspace "$workspace_id" -- "✓ ${title}" >/dev/null 2>&1 || true
         ;;
       *)
-        cmux log --level info --workspace "$workspace_id" -- "○ ${title}" 2>/dev/null || true
+        cmux log --level info --workspace "$workspace_id" -- "○ ${title}" >/dev/null 2>&1 || true
         ;;
     esac
   done
@@ -320,18 +320,16 @@ cmd_start() {
   # workspace作成
   log_info "cmux workspace を作成中..."
   local ws_output workspace_id
-  ws_output=$(cmux new-workspace --json 2>&1) || die "cmux workspace の作成に失敗しました"
-  workspace_id=$(echo "$ws_output" | jq -r '.id // .workspace_id // .workspace.id // empty' 2>/dev/null || echo "")
-
-  if [[ -z "$workspace_id" ]]; then
-    # --json がサポートされていない場合、list-workspaces で最新を取得
-    log_debug "workspace IDをlist-workspacesから取得"
-    workspace_id=$(cmux list-workspaces --json 2>/dev/null | jq -r '.[-1].id // empty' 2>/dev/null || echo "")
-  fi
+  ws_output=$(cmux --id-format uuids new-workspace 2>/dev/null) || die "cmux workspace の作成に失敗しました"
+  # 出力形式: "OK <UUID>"
+  workspace_id=$(echo "$ws_output" | awk '{print $2}')
 
   if [[ -z "$workspace_id" ]]; then
     die "workspace ID を取得できませんでした"
   fi
+
+  # workspace名をセッションタイトルに変更
+  cmux rename-workspace --workspace "$workspace_id" "$session_title" >/dev/null 2>&1 || true
 
   log_debug "workspace_id=${workspace_id}"
 
@@ -339,7 +337,7 @@ cmd_start() {
   log_info "サイドバーを設定中..."
 
   # セッションタイトルをstatus pillで表示
-  cmux set-status session "$session_title" --icon "📋" --color "blue" --workspace "$workspace_id" 2>/dev/null || true
+  cmux set-status session "$session_title" --icon "📋" --color "blue" --workspace "$workspace_id" >/dev/null 2>&1 || true
 
   update_sidebar "$workspace_id" "$session_status" "$tasks_json"
 
@@ -372,7 +370,7 @@ cmd_stop() {
 
   # workspace閉じる（既に閉じられている可能性があるので失敗OK）
   log_info "workspace を閉じています..."
-  cmux close-workspace --workspace "$workspace_id" 2>/dev/null || log_warn "workspace は既に閉じられています"
+  cmux close-workspace --workspace "$workspace_id" >/dev/null 2>&1 || log_warn "workspace は既に閉じられています"
 
   # マッピング削除
   remove_mapping "$session_id"
@@ -429,7 +427,7 @@ cmd_update() {
 
   # サイドバー更新
   log_info "サイドバーを更新中..."
-  cmux set-status session "$session_title" --icon "📋" --color "blue" --workspace "$workspace_id" 2>/dev/null || true
+  cmux set-status session "$session_title" --icon "📋" --color "blue" --workspace "$workspace_id" >/dev/null 2>&1 || true
   update_sidebar "$workspace_id" "$session_status" "$tasks_json"
 
   local completed total
@@ -455,10 +453,10 @@ cmd_sync() {
   local api_session_ids
   api_session_ids=$(echo "$api_sessions" | jq -r '.[].id')
 
-  # cmux workspaces
+  # cmux workspaces (--json, --id-format uuids はグローバルフラグ)
   local workspaces workspace_ids
-  workspaces=$(cmux list-workspaces --json 2>/dev/null || echo '[]')
-  workspace_ids=$(echo "$workspaces" | jq -r '.[].id // empty' 2>/dev/null || echo "")
+  workspaces=$(cmux --json --id-format uuids list-workspaces 2>/dev/null || echo '{"workspaces":[]}')
+  workspace_ids=$(echo "$workspaces" | jq -r '.workspaces[]?.id // empty' 2>/dev/null || echo "")
 
   # マッピング読み込み
   local mappings
@@ -487,7 +485,7 @@ cmd_sync() {
       elif [[ "$in_api" -eq 0 ]]; then
         # API側で完了/削除済み → workspace閉鎖
         log_warn "セッション ${sid:0:8}...: API側で完了 → workspace閉鎖"
-        cmux close-workspace --workspace "$wid" 2>/dev/null || true
+        cmux close-workspace --workspace "$wid" >/dev/null 2>&1 || true
         remove_mapping "$sid"
       else
         # 両方存在 → サイドバー更新
@@ -526,7 +524,7 @@ cmd_sync() {
 
 main() {
   local command="${1:-}"
-  shift 2>/dev/null || true
+  shift >/dev/null 2>&1 || true
 
   case "$command" in
     start)   cmd_start "$@" ;;
