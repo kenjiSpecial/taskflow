@@ -104,7 +104,42 @@ load_config() {
     die "API トークンが設定されていません。TASKFLOW_API_TOKEN を設定するか、${CONFIG_FILE} に api_token を追加してください"
   fi
 
+  # Project dirs: config.json の project_dirs を読み込み
+  PROJECT_DIRS_JSON="{}"
+  if [[ -f "$CONFIG_FILE" ]] && jq -e '.project_dirs' "$CONFIG_FILE" >/dev/null 2>&1; then
+    PROJECT_DIRS_JSON=$(jq '.project_dirs' "$CONFIG_FILE")
+  fi
+
   log_debug "API_URL=${API_URL}"
+}
+
+# ─── Project Directory Resolution ─────────────────────────────────────────────
+
+resolve_project_dir() {
+  local project_name="$1"
+  [[ -z "$project_name" ]] && return 1
+
+  # 1. ローカルオーバーライド (config.json の project_dirs)
+  local dir
+  dir=$(echo "$PROJECT_DIRS_JSON" | jq -r --arg p "$project_name" '.[$p] // empty')
+  if [[ -n "$dir" ]]; then
+    echo "${dir/#\~/$HOME}"
+    return 0
+  fi
+
+  # 2. API の project directory_path
+  local project_id="$2"
+  if [[ -n "$project_id" ]]; then
+    local proj_data
+    proj_data=$(api_get "/api/projects/${project_id}" 2>/dev/null) || return 1
+    dir=$(echo "$proj_data" | jq -r '.project.directory_path // empty')
+    if [[ -n "$dir" ]]; then
+      echo "${dir/#\~/$HOME}"
+      return 0
+    fi
+  fi
+
+  return 1
 }
 
 # ─── API Helpers ──────────────────────────────────────────────────────────────
@@ -327,10 +362,26 @@ cmd_start() {
     claude_prompt="${claude_prompt}\n$(echo "$tasks_json" | jq -r '.[] | (if .status == "completed" then "  [完了] " else "  [未着手] " end) + .title')"
   fi
 
+  # プロジェクト作業ディレクトリ解決
+  local project_name project_id
+  project_name=$(echo "$session_data" | jq -r '.session.project // empty')
+  project_id=$(echo "$session_data" | jq -r '.session.project_id // empty')
+
+  local escaped_prompt work_dir
+  escaped_prompt=$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")
+  work_dir=$(resolve_project_dir "$project_name" "$project_id" 2>/dev/null || true)
+
+  local claude_cmd
+  if [[ -n "$work_dir" && -d "$work_dir" ]]; then
+    claude_cmd="cd '${work_dir}' && claude '${escaped_prompt}'"
+    log_info "作業ディレクトリ: ${work_dir}"
+  else
+    claude_cmd="claude '${escaped_prompt}'"
+  fi
+
   # workspace作成（Claude Code を自動起動）
   log_info "cmux workspace を作成中..."
   local ws_output workspace_id
-  local claude_cmd="claude '$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")'"
   ws_output=$(cmux --id-format uuids new-workspace --command "$claude_cmd" 2>/dev/null) || die "cmux workspace の作成に失敗しました"
   # 出力形式: "OK <UUID>"
   workspace_id=$(echo "$ws_output" | awk '{print $2}')

@@ -90,10 +90,10 @@ app.post("/", async (c) => {
 
   const ts = now();
   const row = await c.env.DB.prepare(
-    `INSERT INTO projects (name, description, color, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO projects (name, description, color, directory_path, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      RETURNING *`,
-  ).bind(data.name, data.description ?? null, data.color ?? null, ts, ts)
+  ).bind(data.name, data.description ?? null, data.color ?? null, data.directory_path ?? null, ts, ts)
     .first<ProjectRow>();
 
   return c.json({ project: row }, 201);
@@ -243,13 +243,14 @@ app.patch("/:id", async (c) => {
   const ts = now();
   const row = await c.env.DB.prepare(
     `UPDATE projects SET
-       name = ?, description = ?, color = ?, archived_at = ?, updated_at = ?
+       name = ?, description = ?, color = ?, directory_path = ?, archived_at = ?, updated_at = ?
      WHERE id = ?
      RETURNING *`,
   ).bind(
     data.name ?? existing.name,
     data.description !== undefined ? data.description : existing.description,
     data.color !== undefined ? data.color : existing.color,
+    data.directory_path !== undefined ? data.directory_path : existing.directory_path,
     data.archived_at !== undefined ? data.archived_at : existing.archived_at,
     ts,
     id,
