@@ -361,6 +361,7 @@ cmd_start() {
     claude_prompt="${claude_prompt}\n\n関連タスク:"
     claude_prompt="${claude_prompt}\n$(echo "$tasks_json" | jq -r '.[] | (if .status == "completed" then "  [完了] " else "  [未着手] " end) + .title')"
   fi
+  claude_prompt="${claude_prompt}\n\n上記の情報を確認し、指示を待ってください。"
 
   # プロジェクト作業ディレクトリ解決
   local project_name project_id
@@ -373,10 +374,10 @@ cmd_start() {
 
   local claude_cmd
   if [[ -n "$work_dir" && -d "$work_dir" ]]; then
-    claude_cmd="cd '${work_dir}' && claude '${escaped_prompt}'"
+    claude_cmd="cd '${work_dir}' && claude --dangerously-skip-permissions '${escaped_prompt}'"
     log_info "作業ディレクトリ: ${work_dir}"
   else
-    claude_cmd="claude '${escaped_prompt}'"
+    claude_cmd="claude --dangerously-skip-permissions '${escaped_prompt}'"
   fi
 
   # workspace作成（Claude Code を自動起動）
