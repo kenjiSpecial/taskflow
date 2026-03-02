@@ -1,8 +1,8 @@
 import { useComputed } from "@preact/signals";
 import { Link } from "wouter-preact";
-import { projects } from "../stores/project-store";
-import { todos } from "../stores/todo-store";
-import { sessions } from "../stores/session-store";
+import { projects, loading as projectsLoading } from "../stores/project-store";
+import { todos, loading as todosLoading } from "../stores/todo-store";
+import { sessions, loading as sessionsLoading } from "../stores/session-store";
 import { ProjectHeader } from "../components/project-detail/ProjectHeader";
 import { SummaryCards } from "../components/project-detail/SummaryCards";
 import { ActiveSessionsSection } from "../components/project-detail/ActiveSessionsSection";
@@ -15,6 +15,10 @@ interface Props {
 }
 
 export function ProjectDetailPage({ projectId }: Props) {
+  const isLoading = useComputed(() =>
+    projectsLoading.value || todosLoading.value || sessionsLoading.value
+  );
+
   const project = useComputed(() =>
     projects.value.find((p) => p.id === projectId) ?? null
   );
@@ -27,6 +31,26 @@ export function ProjectDetailPage({ projectId }: Props) {
     sessions.value.filter((s) => s.project_id === projectId)
   );
 
+  // ローディング中
+  if (isLoading.value && projects.value.length === 0) {
+    return (
+      <div class="max-w-4xl mx-auto">
+        <div class="animate-pulse">
+          <div class="h-4 w-24 bg-app-surface rounded mb-6" />
+          <div class="h-8 w-64 bg-app-surface rounded mb-4" />
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div class="h-20 bg-app-surface rounded-lg" />
+            <div class="h-20 bg-app-surface rounded-lg" />
+            <div class="h-20 bg-app-surface rounded-lg" />
+          </div>
+          <div class="h-32 bg-app-surface rounded-lg mb-4" />
+          <div class="h-48 bg-app-surface rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  // プロジェクトが見つからない
   if (!project.value) {
     return (
       <div class="flex flex-col items-center justify-center min-h-[50vh] text-center">
