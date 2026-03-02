@@ -352,25 +352,51 @@ cmd_start() {
   tasks_data=$(api_get "/api/sessions/${session_id}/tasks")
   tasks_json=$(echo "$tasks_data" | jq '.tasks // []')
 
+  # プロジェクト情報取得
+  local project_name project_id
+  project_name=$(echo "$session_data" | jq -r '.session.project // empty')
+  project_id=$(echo "$session_data" | jq -r '.session.project_id // empty')
+
+  # プロジェクト詳細 + 作業ディレクトリ解決
+  local project_desc="" work_dir=""
+  if [[ -n "$project_id" ]]; then
+    local proj_data
+    proj_data=$(api_get "/api/projects/${project_id}" 2>/dev/null) || true
+    if [[ -n "$proj_data" ]]; then
+      project_desc=$(echo "$proj_data" | jq -r '.project.description // empty')
+    fi
+  fi
+  work_dir=$(resolve_project_dir "$project_name" "$project_id" 2>/dev/null || true)
+
   # Claude Code 初期プロンプトを組み立て
   local claude_prompt
   claude_prompt="セッション「${session_title}」を開始しました。"
+
+  # プロジェクト情報
+  if [[ -n "$project_name" ]]; then
+    claude_prompt="${claude_prompt}\n\nプロジェクト: ${project_name}"
+    if [[ -n "$project_desc" ]]; then
+      claude_prompt="${claude_prompt}\n${project_desc}"
+    fi
+    if [[ -n "$work_dir" && -d "$work_dir" ]]; then
+      claude_prompt="${claude_prompt}\n作業ディレクトリ: ${work_dir}"
+    fi
+  fi
+
+  # 関連タスク
   local task_count
   task_count=$(echo "$tasks_json" | jq 'length')
   if [[ "$task_count" -gt 0 ]]; then
     claude_prompt="${claude_prompt}\n\n関連タスク:"
     claude_prompt="${claude_prompt}\n$(echo "$tasks_json" | jq -r '.[] | (if .status == "completed" then "  [完了] " else "  [未着手] " end) + .title')"
   fi
+
   claude_prompt="${claude_prompt}\n\n上記の情報を確認し、指示を待ってください。"
+  claude_prompt="${claude_prompt}\n指示があるまで実行や変更は行わないでください。"
+  claude_prompt="${claude_prompt}\n不明な点があれば、必ず質問してください。"
 
-  # プロジェクト作業ディレクトリ解決
-  local project_name project_id
-  project_name=$(echo "$session_data" | jq -r '.session.project // empty')
-  project_id=$(echo "$session_data" | jq -r '.session.project_id // empty')
-
-  local escaped_prompt work_dir
+  local escaped_prompt
   escaped_prompt=$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")
-  work_dir=$(resolve_project_dir "$project_name" "$project_id" 2>/dev/null || true)
 
   local claude_cmd
   if [[ -n "$work_dir" && -d "$work_dir" ]]; then
@@ -391,8 +417,14 @@ cmd_start() {
     die "workspace ID を取得できませんでした"
   fi
 
-  # workspace名をセッションタイトルに変更
-  cmux rename-workspace --workspace "$workspace_id" "$session_title" >/dev/null 2>&1 || true
+  # workspace名を「プロジェクト名:セッションタイトル」に変更
+  local workspace_title
+  if [[ -n "$project_name" ]]; then
+    workspace_title="${project_name}:${session_title}"
+  else
+    workspace_title="$session_title"
+  fi
+  cmux rename-workspace --workspace "$workspace_id" "$workspace_title" >/dev/null 2>&1 || true
 
   log_debug "workspace_id=${workspace_id}"
 
@@ -409,7 +441,7 @@ cmd_start() {
 
   local task_count
   task_count=$(echo "$tasks_json" | jq 'length')
-  log_success "workspace を作成しました: ${session_title} (タスク: ${task_count}件)"
+  log_success "workspace を作成しました: ${workspace_title} (タスク: ${task_count}件)"
 }
 
 cmd_stop() {
