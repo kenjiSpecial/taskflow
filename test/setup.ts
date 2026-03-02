@@ -8,6 +8,7 @@ export async function applyMigrations() {
     "0002_create_work_sessions.sql",
     "0003_add_parent_id_sort_order.sql",
     "0004_create_projects.sql",
+    "0005_create_tags.sql",
   ];
 
   for (const file of migrationFiles) {

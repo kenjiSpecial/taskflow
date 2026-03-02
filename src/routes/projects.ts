@@ -75,41 +75,6 @@ app.get("/", async (c) => {
   return c.json({ projects });
 });
 
-// GET /api/projects/:id - プロジェクト詳細
-app.get("/:id", async (c) => {
-  const { id } = c.req.param();
-
-  const row = await c.env.DB.prepare(
-    `SELECT
-       p.*,
-       COALESCE(tc.todo_count, 0) as todo_count,
-       COALESCE(sc.session_active_count, 0) as session_active_count,
-       COALESCE(sc.session_paused_count, 0) as session_paused_count,
-       COALESCE(sc.session_done_count, 0) as session_done_count
-     FROM projects p
-     LEFT JOIN (
-       SELECT project_id, COUNT(*) as todo_count
-       FROM todos WHERE deleted_at IS NULL AND status != 'completed'
-       GROUP BY project_id
-     ) tc ON tc.project_id = p.id
-     LEFT JOIN (
-       SELECT project_id,
-         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as session_active_count,
-         SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as session_paused_count,
-         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as session_done_count
-       FROM work_sessions WHERE deleted_at IS NULL
-       GROUP BY project_id
-     ) sc ON sc.project_id = p.id
-     WHERE p.id = ? AND p.deleted_at IS NULL`,
-  ).bind(id).first<ProjectWithCounts>();
-
-  if (!row) {
-    return c.json({ error: { message: "Project not found" } }, 404);
-  }
-
-  return c.json({ project: row });
-});
-
 // POST /api/projects - プロジェクト作成
 app.post("/", async (c) => {
   const body = await c.req.json();
@@ -134,47 +99,7 @@ app.post("/", async (c) => {
   return c.json({ project: row }, 201);
 });
 
-// PATCH /api/projects/:id - プロジェクト更新
-app.patch("/:id", async (c) => {
-  const { id } = c.req.param();
-  const body = await c.req.json();
-  const data = updateProjectSchema.parse(body);
-
-  const existing = await c.env.DB.prepare(
-    "SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL",
-  ).bind(id).first<ProjectRow>();
-
-  if (!existing) {
-    return c.json({ error: { message: "Project not found" } }, 404);
-  }
-
-  // 名前変更時の重複チェック
-  if (data.name && data.name !== existing.name) {
-    const dup = await c.env.DB.prepare(
-      "SELECT id FROM projects WHERE name = ? AND deleted_at IS NULL AND id != ?",
-    ).bind(data.name, id).first();
-    if (dup) {
-      return c.json({ error: { message: "Project name already exists" } }, 409);
-    }
-  }
-
-  const ts = now();
-  const row = await c.env.DB.prepare(
-    `UPDATE projects SET
-       name = ?, description = ?, color = ?, archived_at = ?, updated_at = ?
-     WHERE id = ?
-     RETURNING *`,
-  ).bind(
-    data.name ?? existing.name,
-    data.description !== undefined ? data.description : existing.description,
-    data.color !== undefined ? data.color : existing.color,
-    data.archived_at !== undefined ? data.archived_at : existing.archived_at,
-    ts,
-    id,
-  ).first<ProjectRow>();
-
-  return c.json({ project: row });
-});
+// --- Tag linking routes (must be before /:id to avoid route conflicts) ---
 
 // GET /api/projects/:id/tags - プロジェクトのタグ一覧
 app.get("/:id/tags", async (c) => {
@@ -252,6 +177,85 @@ app.delete("/:id/tags/:tagId", async (c) => {
   ).bind(id, tagId).run();
 
   return c.json({ success: true });
+});
+
+// --- Single resource routes ---
+
+// GET /api/projects/:id - プロジェクト詳細
+app.get("/:id", async (c) => {
+  const { id } = c.req.param();
+
+  const row = await c.env.DB.prepare(
+    `SELECT
+       p.*,
+       COALESCE(tc.todo_count, 0) as todo_count,
+       COALESCE(sc.session_active_count, 0) as session_active_count,
+       COALESCE(sc.session_paused_count, 0) as session_paused_count,
+       COALESCE(sc.session_done_count, 0) as session_done_count
+     FROM projects p
+     LEFT JOIN (
+       SELECT project_id, COUNT(*) as todo_count
+       FROM todos WHERE deleted_at IS NULL AND status != 'completed'
+       GROUP BY project_id
+     ) tc ON tc.project_id = p.id
+     LEFT JOIN (
+       SELECT project_id,
+         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as session_active_count,
+         SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as session_paused_count,
+         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as session_done_count
+       FROM work_sessions WHERE deleted_at IS NULL
+       GROUP BY project_id
+     ) sc ON sc.project_id = p.id
+     WHERE p.id = ? AND p.deleted_at IS NULL`,
+  ).bind(id).first<ProjectWithCounts>();
+
+  if (!row) {
+    return c.json({ error: { message: "Project not found" } }, 404);
+  }
+
+  return c.json({ project: row });
+});
+
+// PATCH /api/projects/:id - プロジェクト更新
+app.patch("/:id", async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const data = updateProjectSchema.parse(body);
+
+  const existing = await c.env.DB.prepare(
+    "SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first<ProjectRow>();
+
+  if (!existing) {
+    return c.json({ error: { message: "Project not found" } }, 404);
+  }
+
+  // 名前変更時の重複チェック
+  if (data.name && data.name !== existing.name) {
+    const dup = await c.env.DB.prepare(
+      "SELECT id FROM projects WHERE name = ? AND deleted_at IS NULL AND id != ?",
+    ).bind(data.name, id).first();
+    if (dup) {
+      return c.json({ error: { message: "Project name already exists" } }, 409);
+    }
+  }
+
+  const ts = now();
+  const row = await c.env.DB.prepare(
+    `UPDATE projects SET
+       name = ?, description = ?, color = ?, archived_at = ?, updated_at = ?
+     WHERE id = ?
+     RETURNING *`,
+  ).bind(
+    data.name ?? existing.name,
+    data.description !== undefined ? data.description : existing.description,
+    data.color !== undefined ? data.color : existing.color,
+    data.archived_at !== undefined ? data.archived_at : existing.archived_at,
+    ts,
+    id,
+  ).first<ProjectRow>();
+
+  return c.json({ project: row });
 });
 
 // DELETE /api/projects/:id - プロジェクト論理削除
