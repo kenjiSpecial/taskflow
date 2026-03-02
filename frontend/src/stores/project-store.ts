@@ -1,17 +1,25 @@
 import { signal, computed } from "@preact/signals";
 import type { Project, CreateProjectInput, UpdateProjectInput } from "../lib/api";
 import * as api from "../lib/api";
+import { selectedTagId } from "./tag-store";
 
 export const projects = signal<Project[]>([]);
 export const showArchived = signal(false);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
-export const visibleProjects = computed(() =>
-  showArchived.value
+export const visibleProjects = computed(() => {
+  let list = showArchived.value
     ? projects.value
-    : projects.value.filter((p) => !p.archived_at),
-);
+    : projects.value.filter((p) => !p.archived_at);
+
+  const tagId = selectedTagId.value;
+  if (tagId) {
+    list = list.filter((p) => p.tags?.some((t) => t.id === tagId));
+  }
+
+  return list;
+});
 
 export async function loadProjects() {
   loading.value = true;
@@ -28,7 +36,7 @@ export async function loadProjects() {
 
 export async function addProject(data: CreateProjectInput) {
   const res = await api.createProject(data);
-  projects.value = [...projects.value, { ...res.project, todo_count: 0, session_active_count: 0, session_paused_count: 0, session_done_count: 0 }];
+  projects.value = [...projects.value, { ...res.project, todo_count: 0, session_active_count: 0, session_paused_count: 0, session_done_count: 0, tags: [] }];
   return res.project;
 }
 

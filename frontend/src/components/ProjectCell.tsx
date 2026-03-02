@@ -3,18 +3,22 @@ import { editProject, archiveProject, unarchiveProject, removeProject } from "..
 import { loadTodos } from "../stores/todo-store";
 import { loadSessions } from "../stores/session-store";
 import { loadProjects } from "../stores/project-store";
+import { tags, linkProjectTag, unlinkProjectTag } from "../stores/tag-store";
+import type { Tag } from "../lib/api";
 
 interface Props {
   projectId: string | null;
   projectName: string;
   projectColor: string | null;
   projectDescription: string | null;
+  projectTags: Tag[];
   isArchived: boolean;
 }
 
-export function ProjectCell({ projectId, projectName, projectColor, projectDescription, isArchived }: Props) {
+export function ProjectCell({ projectId, projectName, projectColor, projectDescription, projectTags, isArchived }: Props) {
   const menuOpen = useSignal(false);
   const editing = useSignal(false);
+  const tagging = useSignal(false);
   const newName = useSignal(projectName);
   const newDescription = useSignal(projectDescription ?? "");
 
@@ -54,6 +58,21 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
     await Promise.all([loadTodos(), loadSessions(), loadProjects()]);
   };
 
+  const handleTagToggle = async (tagId: string) => {
+    if (!projectId) return;
+    const isLinked = projectTags.some((t) => t.id === tagId);
+    try {
+      if (isLinked) {
+        await unlinkProjectTag(projectId, tagId);
+      } else {
+        await linkProjectTag(projectId, tagId);
+      }
+      await loadProjects();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
   const colorStyle = projectColor
     ? { borderLeft: `3px solid ${projectColor}` }
     : {};
@@ -91,6 +110,33 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
             <button class="btn-ghost" onClick={() => (editing.value = false)} style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}>キャンセル</button>
           </div>
         </div>
+      ) : tagging.value ? (
+        <div class="project-tag-picker">
+          <div class="tag-picker-list">
+            {tags.value.map((tag) => {
+              const isLinked = projectTags.some((t) => t.id === tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  class={`tag-picker-item ${isLinked ? "tag-picker-active" : ""}`}
+                  style={tag.color ? { "--tag-color": tag.color } as Record<string, string> : undefined}
+                  onClick={() => handleTagToggle(tag.id)}
+                >
+                  {tag.color && <span class="tag-dot" />}
+                  {tag.name}
+                  {isLinked && <span class="tag-check">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            class="btn-ghost"
+            onClick={() => (tagging.value = false)}
+            style={{ fontSize: "0.6875rem", padding: "0.125rem 0.375rem", width: "100%", marginTop: "0.25rem" }}
+          >
+            閉じる
+          </button>
+        </div>
       ) : (
         <>
           <div class="project-cell-name">
@@ -116,6 +162,15 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
                     >
                       編集
                     </button>
+                    <button
+                      class="project-menu-item"
+                      onClick={() => {
+                        menuOpen.value = false;
+                        tagging.value = true;
+                      }}
+                    >
+                      タグ
+                    </button>
                     <button class="project-menu-item" onClick={handleArchive}>
                       {isArchived ? "アーカイブ解除" : "アーカイブ"}
                     </button>
@@ -129,6 +184,20 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
           </div>
           {projectDescription && (
             <div class="project-description">{projectDescription}</div>
+          )}
+          {projectTags.length > 0 && (
+            <div class="project-tags">
+              {projectTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  class="tag-mini"
+                  style={tag.color ? { "--tag-color": tag.color } as Record<string, string> : undefined}
+                >
+                  {tag.color && <span class="tag-dot" />}
+                  {tag.name}
+                </span>
+              ))}
+            </div>
           )}
         </>
       )}

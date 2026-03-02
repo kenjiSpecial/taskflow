@@ -1,3 +1,17 @@
+// --- Tags ---
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string | null;
+  is_preset: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CreateTagInput = Pick<Tag, "name"> & Partial<Pick<Tag, "color">>;
+export type UpdateTagInput = Partial<Pick<Tag, "name" | "color">>;
+
 // --- Projects ---
 
 export interface Project {
@@ -13,6 +27,7 @@ export interface Project {
   session_active_count: number;
   session_paused_count: number;
   session_done_count: number;
+  tags: Tag[];
 }
 
 export type CreateProjectInput = Pick<Project, "name"> &
@@ -40,6 +55,7 @@ export interface Todo {
   updated_at: string;
   deleted_at: string | null;
   children?: Todo[];
+  tags?: { id: string; name: string; color: string | null; is_preset: boolean }[];
 }
 
 export interface TodoListResponse {
@@ -227,4 +243,50 @@ export async function unlinkSessionTask(sessionId: string, todoId: string): Prom
 
 export async function fetchTodoSessions(todoId: string): Promise<{ sessions: WorkSession[] }> {
   return request(`/api/todos/${todoId}/sessions`);
+}
+
+// --- Tags API ---
+
+export async function fetchTags(): Promise<{ tags: Tag[] }> {
+  return request("/api/tags");
+}
+
+export async function createTag(data: CreateTagInput): Promise<{ tag: Tag }> {
+  return request("/api/tags", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function updateTag(id: string, data: UpdateTagInput): Promise<{ tag: Tag }> {
+  return request(`/api/tags/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  await request(`/api/tags/${id}`, { method: "DELETE" });
+}
+
+// --- Project-Tag linking ---
+
+export async function fetchProjectTags(projectId: string): Promise<{ tags: Tag[] }> {
+  return request(`/api/projects/${projectId}/tags`);
+}
+
+export async function linkProjectTag(projectId: string, tagId: string): Promise<void> {
+  await request(`/api/projects/${projectId}/tags`, { method: "POST", body: JSON.stringify({ tag_id: tagId }) });
+}
+
+export async function unlinkProjectTag(projectId: string, tagId: string): Promise<void> {
+  await request(`/api/projects/${projectId}/tags/${tagId}`, { method: "DELETE" });
+}
+
+// --- Todo-Tag linking ---
+
+export async function fetchTodoTags(todoId: string): Promise<{ tags: Tag[] }> {
+  return request(`/api/todos/${todoId}/tags`);
+}
+
+export async function linkTodoTag(todoId: string, tagId: string): Promise<void> {
+  await request(`/api/todos/${todoId}/tags`, { method: "POST", body: JSON.stringify({ tag_id: tagId }) });
+}
+
+export async function unlinkTodoTag(todoId: string, tagId: string): Promise<void> {
+  await request(`/api/todos/${todoId}/tags/${tagId}`, { method: "DELETE" });
 }

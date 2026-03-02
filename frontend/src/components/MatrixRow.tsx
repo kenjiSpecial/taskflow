@@ -6,16 +6,18 @@ import { ProjectCell } from "./ProjectCell";
 import { SessionCell } from "./SessionCell";
 import { TasksCell } from "./TasksCell";
 import { SessionInlineDetail } from "./SessionInlineDetail";
+import type { Tag } from "../lib/api";
 
 interface Props {
   projectId: string | null;
   projectName: string;
   projectColor: string | null;
   projectDescription: string | null;
+  projectTags: Tag[];
   isArchived: boolean;
 }
 
-export function MatrixRow({ projectId, projectName, projectColor, projectDescription, isArchived }: Props) {
+export function MatrixRow({ projectId, projectName, projectColor, projectDescription, projectTags, isArchived }: Props) {
   const projectSessions = useComputed(() =>
     sessions.value.filter((s) =>
       projectId === null ? !s.project_id : s.project_id === projectId,
@@ -53,6 +55,7 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
         projectName={projectName}
         projectColor={projectColor}
         projectDescription={projectDescription}
+        projectTags={projectTags}
         isArchived={isArchived}
       />
       <SessionCell

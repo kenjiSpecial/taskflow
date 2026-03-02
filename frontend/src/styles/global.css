@@ -948,6 +948,168 @@ select:focus {
   color: var(--text-muted);
 }
 
+/* Tag filter bar */
+.matrix-toolbar-wrapper {
+  margin-bottom: 1rem;
+}
+
+.matrix-toolbar-wrapper .matrix-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.tag-filter-bar {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.tag-chip-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.tag-chip-active:hover {
+  background: var(--accent-hover);
+  color: #fff;
+  border-color: var(--accent-hover);
+}
+
+.tag-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tag-color, var(--text-muted));
+  flex-shrink: 0;
+}
+
+/* Project tags in cell */
+.project-tags {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  margin-top: 0.125rem;
+}
+
+.tag-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.625rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.tag-mini .tag-dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* Mini todo tags */
+.mini-todo-tags {
+  display: flex;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.mini-todo-tag-btn {
+  padding: 0 0.25rem;
+  font-size: 0.6875rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.mini-todo-item:hover .mini-todo-tag-btn {
+  opacity: 1;
+}
+
+.mini-todo-item {
+  position: relative;
+}
+
+.mini-todo-tag-picker {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.25rem;
+}
+
+/* Tag picker in project cell */
+.project-tag-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.tag-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.tag-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius) - 2px);
+  text-align: left;
+  width: 100%;
+}
+
+.tag-picker-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tag-picker-active {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.tag-check {
+  margin-left: auto;
+  color: var(--success);
+  font-size: 0.6875rem;
+}
+
 @media (max-width: 768px) {
   .layout {
     grid-template-columns: 1fr;

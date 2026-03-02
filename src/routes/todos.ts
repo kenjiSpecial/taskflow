@@ -7,6 +7,18 @@ import { tagLinkSchema } from "../validators/tag";
 
 const app = new Hono<AppEnv>();
 
+interface TodoWithTags extends TodoRow {
+  tag_info: string | null;
+}
+
+function parseTagInfo(tagInfo: string | null): { id: string; name: string; color: string | null; is_preset: boolean }[] {
+  if (!tagInfo) return [];
+  return tagInfo.split(",").map((entry) => {
+    const [id, name, color, isPreset] = entry.split(":");
+    return { id, name, color: color || null, is_preset: isPreset === "1" };
+  });
+}
+
 // GET /api/todos - 一覧
 app.get("/", async (c) => {
   const parsed = listTodosQuery.safeParse(c.req.query());
@@ -15,44 +27,60 @@ app.get("/", async (c) => {
   }
 
   const { status, priority, project, project_id, sort, order, limit, offset } = parsed.data;
-  const conditions: string[] = ["deleted_at IS NULL"];
+  const conditions: string[] = ["t.deleted_at IS NULL"];
   const params: unknown[] = [];
 
   if (status) {
-    conditions.push("status = ?");
+    conditions.push("t.status = ?");
     params.push(status);
   }
   if (priority) {
-    conditions.push("priority = ?");
+    conditions.push("t.priority = ?");
     params.push(priority);
   }
   if (project_id) {
-    conditions.push("project_id = ?");
+    conditions.push("t.project_id = ?");
     params.push(project_id);
   } else if (project) {
-    conditions.push("project = ?");
+    conditions.push("t.project = ?");
     params.push(project);
   }
 
   const where = conditions.join(" AND ");
 
-  const countResult = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM todos WHERE ${where}`).bind(...params).first<{ total: number }>();
+  const countResult = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM todos t WHERE ${where}`).bind(...params).first<{ total: number }>();
 
   const sortCol = sort === "priority"
-    ? "CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END"
-    : sort;
+    ? "CASE t.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END"
+    : `t.${sort}`;
 
   // sort_orderの場合、同値ではcreated_at DESCでフォールバック
   const orderBy = sort === "sort_order"
-    ? `${sortCol} ${order.toUpperCase()}, created_at DESC`
+    ? `${sortCol} ${order.toUpperCase()}, t.created_at DESC`
     : `${sortCol} ${order.toUpperCase()}`;
 
   const rows = await c.env.DB.prepare(
-    `SELECT * FROM todos WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-  ).bind(...params, limit, offset).all<TodoRow>();
+    `SELECT t.*, tg.tag_info
+     FROM todos t
+     LEFT JOIN (
+       SELECT tt.todo_id,
+         GROUP_CONCAT(tg.id || ':' || tg.name || ':' || COALESCE(tg.color, '') || ':' || tg.is_preset) as tag_info
+       FROM todo_tags tt
+       JOIN tags tg ON tg.id = tt.tag_id AND tg.deleted_at IS NULL
+       GROUP BY tt.todo_id
+     ) tg ON tg.todo_id = t.id
+     WHERE ${where}
+     ORDER BY ${orderBy}
+     LIMIT ? OFFSET ?`,
+  ).bind(...params, limit, offset).all<TodoWithTags>();
+
+  const todos = rows.results.map((row) => {
+    const { tag_info, ...rest } = row;
+    return { ...rest, tags: parseTagInfo(tag_info) };
+  });
 
   return c.json({
-    todos: rows.results,
+    todos,
     meta: { total: countResult?.total ?? 0, limit, offset },
   });
 });

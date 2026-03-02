@@ -1,7 +1,8 @@
 import { useSignal } from "@preact/signals";
 import type { Todo } from "../lib/api";
 import { expandedTaskProjects, toggleTasksExpanded } from "../stores/app-store";
-import { addTodo, childrenMap, taskProgress, toggleTodo, dragState, changeTaskProject } from "../stores/todo-store";
+import { addTodo, childrenMap, taskProgress, toggleTodo, dragState, changeTaskProject, loadTodos } from "../stores/todo-store";
+import { tags, linkTodoTag, unlinkTodoTag } from "../stores/tag-store";
 
 interface Props {
   projectId: string | null;
@@ -119,9 +120,26 @@ export function TasksCell({ projectId, todos, isArchived }: Props) {
 function MiniTodoItem({ todo }: { todo: Todo }) {
   const progress = taskProgress.value.get(todo.id);
   const isParent = !todo.parent_id;
+  const tagging = useSignal(false);
+
+  const todoTags = todo.tags ?? [];
 
   const handleToggle = async () => {
     await toggleTodo(todo.id, todo.status);
+  };
+
+  const handleTagToggle = async (tagId: string) => {
+    const isLinked = todoTags.some((t) => t.id === tagId);
+    try {
+      if (isLinked) {
+        await unlinkTodoTag(todo.id, tagId);
+      } else {
+        await linkTodoTag(todo.id, tagId);
+      }
+      await loadTodos();
+    } catch (e) {
+      alert((e as Error).message);
+    }
   };
 
   // D&D（親タスクのみドラッグ可能）
@@ -164,6 +182,46 @@ function MiniTodoItem({ todo }: { todo: Todo }) {
           </span>
         )}
       </div>
+      {todoTags.length > 0 && (
+        <div class="mini-todo-tags">
+          {todoTags.map((tag) => (
+            <span
+              key={tag.id}
+              class="tag-mini"
+              style={tag.color ? { "--tag-color": tag.color } as Record<string, string> : undefined}
+            >
+              {tag.color && <span class="tag-dot" />}
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
+      <button
+        class="btn-ghost mini-todo-tag-btn"
+        onClick={(e) => { e.stopPropagation(); tagging.value = !tagging.value; }}
+        title="タグ"
+      >
+        #
+      </button>
+      {tagging.value && (
+        <div class="mini-todo-tag-picker" onClick={(e) => e.stopPropagation()}>
+          {tags.value.map((tag) => {
+            const isLinked = todoTags.some((t) => t.id === tag.id);
+            return (
+              <button
+                key={tag.id}
+                class={`tag-picker-item ${isLinked ? "tag-picker-active" : ""}`}
+                style={tag.color ? { "--tag-color": tag.color } as Record<string, string> : undefined}
+                onClick={() => handleTagToggle(tag.id)}
+              >
+                {tag.color && <span class="tag-dot" />}
+                {tag.name}
+                {isLinked && <span class="tag-check">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
