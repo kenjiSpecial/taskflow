@@ -1,3 +1,20 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-app-bg: var(--bg);
+  --color-app-surface: var(--surface);
+  --color-app-surface-hover: var(--surface-hover);
+  --color-app-border: var(--border);
+  --color-app-text: var(--text);
+  --color-app-text-muted: var(--text-muted);
+  --color-app-accent: var(--accent);
+  --color-app-accent-hover: var(--accent-hover);
+  --color-app-danger: var(--danger);
+  --color-app-success: var(--success);
+  --color-app-warning: var(--warning);
+  --radius-app: var(--radius);
+}
+
 *,
 *::before,
 *::after {
