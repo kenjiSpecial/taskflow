@@ -11,10 +11,11 @@ interface Props {
   projectId: string | null;
   projectName: string;
   projectColor: string | null;
+  projectDescription: string | null;
   isArchived: boolean;
 }
 
-export function MatrixRow({ projectId, projectName, projectColor, isArchived }: Props) {
+export function MatrixRow({ projectId, projectName, projectColor, projectDescription, isArchived }: Props) {
   const projectSessions = useComputed(() =>
     sessions.value.filter((s) =>
       projectId === null ? !s.project_id : s.project_id === projectId,
@@ -51,6 +52,7 @@ export function MatrixRow({ projectId, projectName, projectColor, isArchived }: 
         projectId={projectId}
         projectName={projectName}
         projectColor={projectColor}
+        projectDescription={projectDescription}
         isArchived={isArchived}
       />
       <SessionCell

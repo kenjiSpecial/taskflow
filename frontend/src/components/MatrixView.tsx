@@ -29,6 +29,7 @@ export function MatrixView() {
             projectId={project.id}
             projectName={project.name}
             projectColor={project.color}
+            projectDescription={project.description}
             isArchived={!!project.archived_at}
           />
         ))}
@@ -40,6 +41,7 @@ export function MatrixView() {
             projectId={null}
             projectName="(未分類)"
             projectColor={null}
+            projectDescription={null}
             isArchived={false}
           />
         )}

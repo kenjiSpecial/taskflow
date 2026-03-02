@@ -5,6 +5,7 @@ import { addProject } from "../stores/project-store";
 export function MatrixHeader() {
   const adding = useSignal(false);
   const name = useSignal("");
+  const description = useSignal("");
   const submitting = useSignal(false);
 
   const handleAdd = async () => {
@@ -12,8 +13,10 @@ export function MatrixHeader() {
     if (!value || submitting.value) return;
     submitting.value = true;
     try {
-      await addProject({ name: value });
+      const desc = description.value.trim();
+      await addProject({ name: value, ...(desc ? { description: desc } : {}) });
       name.value = "";
+      description.value = "";
       adding.value = false;
     } catch (e) {
       alert((e as Error).message);
@@ -26,7 +29,7 @@ export function MatrixHeader() {
     <div class="matrix-toolbar">
       <div class="matrix-toolbar-left">
         {adding.value ? (
-          <div class="form-inline" style={{ marginBottom: 0 }}>
+          <div class="project-add-form">
             <input
               type="text"
               placeholder="プロジェクト名..."
@@ -38,6 +41,17 @@ export function MatrixHeader() {
               }}
               // biome-ignore lint: autofocus is intentional
               autoFocus
+              style={{ width: "200px" }}
+            />
+            <input
+              type="text"
+              placeholder="概要（任意）..."
+              value={description.value}
+              onInput={(e) => (description.value = (e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdd();
+                if (e.key === "Escape") (adding.value = false);
+              }}
               style={{ width: "200px" }}
             />
             <button class="btn-primary" onClick={handleAdd} disabled={submitting.value}>
