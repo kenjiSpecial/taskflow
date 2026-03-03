@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@preact/signals": "^2.0.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "marked": "^17.0.3",
     "preact": "^10.25.0",
     "wouter-preact": "^3.9.0"
   },

@@ -1,5 +1,8 @@
 import { Link } from "wouter-preact";
+import { marked } from "marked";
 import type { Project, Tag } from "../../lib/api";
+
+marked.setOptions({ breaks: true });
 
 export type ViewMode = "dashboard" | "card" | "kanban" | "timeline";
 
@@ -55,7 +58,10 @@ export function ProjectHeader({ project, viewMode, onViewChange }: Props) {
             {project.name}
           </h1>
           {project.description && (
-            <p class="text-sm text-app-text-muted mt-1 pl-3 ml-1">{project.description}</p>
+            <div
+              class="prose prose-invert prose-sm max-w-none mt-1 pl-3 ml-1 text-app-text-muted"
+              dangerouslySetInnerHTML={{ __html: marked.parse(project.description) as string }}
+            />
           )}
           {project.tags && project.tags.length > 0 && (
             <div class="flex gap-1.5 flex-wrap mt-2 pl-3 ml-1">
