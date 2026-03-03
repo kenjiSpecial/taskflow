@@ -2,8 +2,14 @@ import { useSignal } from "@preact/signals";
 import { showArchived } from "../stores/project-store";
 import { addProject } from "../stores/project-store";
 import { tags, selectedTagId } from "../stores/tag-store";
+import type { MatrixViewMode } from "./MatrixView";
 
-export function MatrixHeader() {
+interface Props {
+  viewMode: MatrixViewMode;
+  onViewChange: (mode: MatrixViewMode) => void;
+}
+
+export function MatrixHeader({ viewMode, onViewChange }: Props) {
   const adding = useSignal(false);
   const name = useSignal("");
   const description = useSignal("");
@@ -69,15 +75,42 @@ export function MatrixHeader() {
             </button>
           )}
         </div>
-        <label class="matrix-toolbar-right">
-          <input
-            type="checkbox"
-            checked={showArchived.value}
-            onChange={(e) => (showArchived.value = (e.target as HTMLInputElement).checked)}
-            style={{ width: "auto", marginRight: "0.375rem" }}
-          />
-          <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>アーカイブ表示</span>
-        </label>
+        <div class="matrix-toolbar-right" style={{ gap: "0.5rem" }}>
+          <div class="view-toggle-group">
+            <button
+              class={`view-toggle-btn ${viewMode === "matrix" ? "active" : ""}`}
+              onClick={() => onViewChange("matrix")}
+              title="グリッド表示"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            </button>
+            <button
+              class={`view-toggle-btn ${viewMode === "card" ? "active" : ""}`}
+              onClick={() => onViewChange("card")}
+              title="カード表示"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="5" rx="1" />
+                <rect x="3" y="11" width="18" height="5" rx="1" />
+                <rect x="3" y="19" width="18" height="2" rx="1" />
+              </svg>
+            </button>
+          </div>
+          <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showArchived.value}
+              onChange={(e) => (showArchived.value = (e.target as HTMLInputElement).checked)}
+              style={{ width: "auto", marginRight: "0.375rem" }}
+            />
+            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>アーカイブ表示</span>
+          </label>
+        </div>
       </div>
 
       {tags.value.length > 0 && (

@@ -3,9 +3,11 @@ import { sessions, addSession } from "../stores/session-store";
 import { todos } from "../stores/todo-store";
 import { expandedSessionId, badgeExpandedProjects, toggleBadgeExpanded } from "../stores/app-store";
 import { ProjectCell } from "./ProjectCell";
+import { SessionCell } from "./SessionCell";
 import { TasksCell } from "./TasksCell";
 import { SessionInlineDetail } from "./SessionInlineDetail";
 import type { Tag, WorkSession } from "../lib/api";
+import type { MatrixViewMode } from "./MatrixView";
 
 interface Props {
   projectId: string | null;
@@ -14,6 +16,7 @@ interface Props {
   projectDescription: string | null;
   projectTags: Tag[];
   isArchived: boolean;
+  viewMode: MatrixViewMode;
 }
 
 function ActiveSessionCard({ session }: { session: WorkSession }) {
@@ -70,7 +73,7 @@ function BadgeSessionCard({ session }: { session: WorkSession }) {
   );
 }
 
-export function MatrixRow({ projectId, projectName, projectColor, projectDescription, projectTags, isArchived }: Props) {
+export function MatrixRow({ projectId, projectName, projectColor, projectDescription, projectTags, isArchived, viewMode }: Props) {
   const addingSession = useSignal(false);
   const newSessionTitle = useSignal("");
 
@@ -104,6 +107,39 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
     return projectSessions.value.some((s) => s.id === eid);
   });
 
+  // --- Matrix (grid) mode ---
+  if (viewMode === "matrix") {
+    const colorStyle = projectColor
+      ? { borderLeft: `3px solid ${projectColor}` }
+      : {};
+
+    return (
+      <>
+        <div class={`matrix-cell matrix-project-cell ${isArchived ? "archived" : ""}`} style={colorStyle}>
+          <ProjectCell
+            projectId={projectId}
+            projectName={projectName}
+            projectDescription={projectDescription}
+            projectTags={projectTags}
+            isArchived={isArchived}
+          />
+        </div>
+        <SessionCell sessions={activeSessions.value} status="active" projectId={projectId} isArchived={isArchived} />
+        <SessionCell sessions={pausedSessions.value} status="paused" projectId={projectId} isArchived={isArchived} />
+        <SessionCell sessions={doneSessions.value} status="done" projectId={projectId} isArchived={isArchived} />
+        <div class="matrix-cell matrix-tasks-cell">
+          <TasksCell projectId={projectId} todos={projectTodos.value} isArchived={isArchived} viewMode="matrix" />
+        </div>
+        {expandedInThisCard.value && (
+          <div class="matrix-detail-row">
+            <SessionInlineDetail />
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // --- Card mode ---
   const hasActive = activeSessions.value.length > 0;
   const key = projectId ?? "_uncategorized";
   const badgeState = badgeExpandedProjects.value.get(key);
@@ -226,6 +262,7 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
             projectId={projectId}
             todos={projectTodos.value}
             isArchived={isArchived}
+            viewMode="card"
           />
         </div>
       ) : (
@@ -233,6 +270,7 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
           projectId={projectId}
           todos={projectTodos.value}
           isArchived={isArchived}
+          viewMode="card"
         />
       )}
 

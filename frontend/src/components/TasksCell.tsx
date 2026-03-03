@@ -3,14 +3,16 @@ import type { Todo } from "../lib/api";
 import { expandedTaskProjects, toggleTasksExpanded } from "../stores/app-store";
 import { addTodo, childrenMap, taskProgress, toggleTodo, dragState, changeTaskProject, loadTodos } from "../stores/todo-store";
 import { tags, linkTodoTag, unlinkTodoTag } from "../stores/tag-store";
+import type { MatrixViewMode } from "./MatrixView";
 
 interface Props {
   projectId: string | null;
   todos: Todo[];
   isArchived: boolean;
+  viewMode?: MatrixViewMode;
 }
 
-export function TasksCell({ projectId, todos, isArchived }: Props) {
+export function TasksCell({ projectId, todos, isArchived, viewMode = "card" }: Props) {
   const adding = useSignal(false);
   const title = useSignal("");
   const dragOver = useSignal(false);
@@ -58,7 +60,8 @@ export function TasksCell({ projectId, todos, isArchived }: Props) {
     dragState.value = { dragId: null, dropTarget: null };
   };
 
-  const cellClass = `card-tasks-section${dragOver.value ? " drag-over-cell" : ""}`;
+  const baseClass = viewMode === "matrix" ? "matrix-tasks-inner" : "card-tasks-section";
+  const cellClass = `${baseClass}${dragOver.value ? " drag-over-cell" : ""}`;
 
   return (
     <div
