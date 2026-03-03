@@ -58,7 +58,7 @@ export function TasksCell({ projectId, todos, isArchived }: Props) {
     dragState.value = { dragId: null, dropTarget: null };
   };
 
-  const cellClass = `matrix-cell matrix-tasks-cell${dragOver.value ? " drag-over-cell" : ""}`;
+  const cellClass = `card-tasks-section${dragOver.value ? " drag-over-cell" : ""}`;
 
   return (
     <div

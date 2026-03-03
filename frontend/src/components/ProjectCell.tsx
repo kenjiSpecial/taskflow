@@ -10,13 +10,12 @@ import type { Tag } from "../lib/api";
 interface Props {
   projectId: string | null;
   projectName: string;
-  projectColor: string | null;
   projectDescription: string | null;
   projectTags: Tag[];
   isArchived: boolean;
 }
 
-export function ProjectCell({ projectId, projectName, projectColor, projectDescription, projectTags, isArchived }: Props) {
+export function ProjectCell({ projectId, projectName, projectDescription, projectTags, isArchived }: Props) {
   const menuOpen = useSignal(false);
   const editing = useSignal(false);
   const tagging = useSignal(false);
@@ -74,12 +73,8 @@ export function ProjectCell({ projectId, projectName, projectColor, projectDescr
     }
   };
 
-  const colorStyle = projectColor
-    ? { borderLeft: `3px solid ${projectColor}` }
-    : {};
-
   return (
-    <div class={`matrix-cell matrix-project-cell ${isArchived ? "archived" : ""}`} style={colorStyle}>
+    <div class="project-cell-content">
       {editing.value ? (
         <div class="project-edit-form">
           <input

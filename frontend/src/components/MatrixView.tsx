@@ -11,19 +11,23 @@ export function MatrixView() {
     sessions.value.some((s) => !s.project_id),
   );
 
+  // ソート: Activeセッション有りプロジェクトを上に
+  const sortedProjects = useComputed(() => {
+    const projects = [...visibleProjects.value];
+    return projects.sort((a, b) => {
+      const aHasActive = sessions.value.some((s) => s.project_id === a.id && s.status === "active");
+      const bHasActive = sessions.value.some((s) => s.project_id === b.id && s.status === "active");
+      if (aHasActive && !bHasActive) return -1;
+      if (!aHasActive && bHasActive) return 1;
+      return 0;
+    });
+  });
+
   return (
     <div class="matrix-container">
       <MatrixHeader />
-      <div class="matrix">
-        {/* Header row */}
-        <div class="matrix-header-cell" />
-        <div class="matrix-header-cell">Active</div>
-        <div class="matrix-header-cell">Paused</div>
-        <div class="matrix-header-cell">Done</div>
-        <div class="matrix-header-cell">タスク</div>
-
-        {/* Project rows */}
-        {visibleProjects.value.map((project) => (
+      <div class="card-list">
+        {sortedProjects.value.map((project) => (
           <MatrixRow
             key={project.id}
             projectId={project.id}
@@ -35,7 +39,6 @@ export function MatrixView() {
           />
         ))}
 
-        {/* Uncategorized row */}
         {uncategorizedExists.value && (
           <MatrixRow
             key="_uncategorized"
