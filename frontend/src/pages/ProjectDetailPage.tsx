@@ -1,20 +1,35 @@
-import { useComputed } from "@preact/signals";
+import { useComputed, useSignal } from "@preact/signals";
 import { Link } from "wouter-preact";
 import { projects, loading as projectsLoading } from "../stores/project-store";
 import { todos, loading as todosLoading } from "../stores/todo-store";
 import { sessions, loading as sessionsLoading } from "../stores/session-store";
-import { ProjectHeader } from "../components/project-detail/ProjectHeader";
+import { ProjectHeader, type ViewMode } from "../components/project-detail/ProjectHeader";
 import { SummaryCards } from "../components/project-detail/SummaryCards";
 import { ActiveSessionsSection } from "../components/project-detail/ActiveSessionsSection";
 import { TasksSection } from "../components/project-detail/TasksSection";
 import { PausedSessionsSection } from "../components/project-detail/PausedSessionsSection";
 import { DoneSessionsSection } from "../components/project-detail/DoneSessionsSection";
+import { CardView } from "../components/project-detail/CardView";
+import { KanbanView } from "../components/project-detail/KanbanView";
+import { TimelineView } from "../components/project-detail/TimelineView";
+
+const STORAGE_KEY = "taskflow-view-mode";
+
+function getStoredViewMode(): ViewMode {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    if (v === "dashboard" || v === "card" || v === "kanban" || v === "timeline") return v;
+  } catch {}
+  return "dashboard";
+}
 
 interface Props {
   projectId: string;
 }
 
 export function ProjectDetailPage({ projectId }: Props) {
+  const viewMode = useSignal<ViewMode>(getStoredViewMode());
+
   const isLoading = useComputed(() =>
     projectsLoading.value || todosLoading.value || sessionsLoading.value
   );
@@ -30,6 +45,11 @@ export function ProjectDetailPage({ projectId }: Props) {
   const projectSessions = useComputed(() =>
     sessions.value.filter((s) => s.project_id === projectId)
   );
+
+  const handleViewChange = (mode: ViewMode) => {
+    viewMode.value = mode;
+    try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
+  };
 
   // ローディング中
   if (isLoading.value && projects.value.length === 0) {
@@ -65,12 +85,33 @@ export function ProjectDetailPage({ projectId }: Props) {
 
   return (
     <div class="max-w-4xl mx-auto">
-      <ProjectHeader project={project.value} />
+      <ProjectHeader
+        project={project.value}
+        viewMode={viewMode.value}
+        onViewChange={handleViewChange}
+      />
       <SummaryCards todos={projectTodos.value} sessions={projectSessions.value} />
-      <ActiveSessionsSection sessions={projectSessions.value} projectId={projectId} />
-      <TasksSection todos={projectTodos.value} projectId={projectId} />
-      <PausedSessionsSection sessions={projectSessions.value} />
-      <DoneSessionsSection sessions={projectSessions.value} />
+
+      {viewMode.value === "dashboard" && (
+        <>
+          <ActiveSessionsSection sessions={projectSessions.value} projectId={projectId} />
+          <TasksSection todos={projectTodos.value} projectId={projectId} />
+          <PausedSessionsSection sessions={projectSessions.value} />
+          <DoneSessionsSection sessions={projectSessions.value} />
+        </>
+      )}
+
+      {viewMode.value === "card" && (
+        <CardView todos={projectTodos.value} projectId={projectId} />
+      )}
+
+      {viewMode.value === "kanban" && (
+        <KanbanView todos={projectTodos.value} projectId={projectId} />
+      )}
+
+      {viewMode.value === "timeline" && (
+        <TimelineView todos={projectTodos.value} sessions={projectSessions.value} />
+      )}
     </div>
   );
 }
