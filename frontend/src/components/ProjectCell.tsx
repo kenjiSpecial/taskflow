@@ -25,7 +25,7 @@ export function ProjectCell({ projectId, projectName, projectDescription, projec
 
   const handleCopyPrompt = async (e: Event) => {
     e.stopPropagation();
-    const text = `${projectName}について以下のタスクを行ってください`;
+    const text = `${projectName}について以下のタスクを作成する`;
     try {
       await navigator.clipboard.writeText(text);
       copied.value = true;
