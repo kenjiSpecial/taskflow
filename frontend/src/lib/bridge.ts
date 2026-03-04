@@ -1,4 +1,6 @@
-const BRIDGE_URL = "http://localhost:19876";
+// 127.0.0.1 を使う: HTTPS ページからの HTTP リクエストで
+// ブラウザが "potentially trustworthy" として許可する
+const BRIDGE_URL = "http://127.0.0.1:19876";
 const TIMEOUT_MS = 15_000;
 
 export interface BridgeResult {
