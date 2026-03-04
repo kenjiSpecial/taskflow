@@ -149,29 +149,31 @@ export function ProjectCell({ projectId, projectName, projectDescription, projec
       ) : (
         <>
           <div class="project-cell-name">
-            {projectId ? (
-              <Link href={`/projects/${projectId}`} class="project-name-text" style={{ color: "inherit", textDecoration: "none" }}>
-                {projectName}
-              </Link>
-            ) : (
-              <span class="project-name-text">{projectName}</span>
-            )}
-            <button
-              class="btn-ghost project-copy-btn"
-              onClick={handleCopyPrompt}
-              title="プロンプトをコピー"
-            >
-              {copied.value ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+            <div class="project-name-group">
+              {projectId ? (
+                <Link href={`/projects/${projectId}`} class="project-name-text" style={{ color: "inherit", textDecoration: "none" }}>
+                  {projectName}
+                </Link>
               ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
+                <span class="project-name-text">{projectName}</span>
               )}
-            </button>
+              <button
+                class="btn-ghost project-copy-btn"
+                onClick={handleCopyPrompt}
+                title="プロンプトをコピー"
+              >
+                {copied.value ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
             {projectId && (
               <div class="project-menu-wrapper">
                 <button

@@ -771,6 +771,13 @@ select:focus {
   gap: 0.25rem;
 }
 
+.project-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .project-name-text {
   font-size: 0.8125rem;
   font-weight: 500;
@@ -827,20 +834,12 @@ select:focus {
 .project-copy-btn {
   padding: 0.125rem 0.25rem;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 0.15s;
   color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .project-copy-btn:hover {
   color: var(--accent);
-}
-
-.project-cell-name:hover .project-copy-btn,
-.project-card-header:hover .project-copy-btn,
-.matrix-project-cell:hover .project-copy-btn {
-  opacity: 1;
 }
 
 /* project-menu hover は project-card-header で処理 */
