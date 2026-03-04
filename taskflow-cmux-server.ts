@@ -24,7 +24,10 @@ const PROCESS_TIMEOUT_MS = 30_000;
 // In-flight requests per sessionId to prevent double workspace creation
 const inFlight = new Set<string>();
 
-const MAPPINGS_FILE = join(homedir(), ".taskflow-cmux", "mappings.json");
+const CONFIG_DIR = join(homedir(), ".taskflow-cmux");
+const MAPPINGS_FILE = join(CONFIG_DIR, "mappings.json");
+const CERT_FILE = join(CONFIG_DIR, "cert.pem");
+const KEY_FILE = join(CONFIG_DIR, "key.pem");
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -100,9 +103,27 @@ async function runCmuxStart(
 const scriptDir = import.meta.dir;
 const cmuxScript = `${scriptDir}/taskflow-cmux`;
 
+// Load TLS certificates
+let tlsConfig: { cert: string; key: string } | undefined;
+try {
+  tlsConfig = {
+    cert: readFileSync(CERT_FILE, "utf-8"),
+    key: readFileSync(KEY_FILE, "utf-8"),
+  };
+} catch {
+  console.warn(
+    `warn: TLS証明書が見つかりません (${CERT_FILE})。HTTPで起動します。\n` +
+      "  HTTPS化: mkcert -install && mkcert -cert-file ~/.taskflow-cmux/cert.pem -key-file ~/.taskflow-cmux/key.pem localhost 127.0.0.1",
+  );
+}
+
+const protocol = tlsConfig ? "https" : "http";
+
 // Check if port is already in use
 try {
-  const check = await fetch(`http://${HOSTNAME}:${PORT}/health`);
+  const check = await fetch(`${protocol}://${HOSTNAME}:${PORT}/health`, {
+    tls: { rejectUnauthorized: false },
+  } as RequestInit);
   if (check.ok) {
     console.error(
       `error: ポート ${PORT} は既に使用中です。既存のサーバーを停止してください:\n  lsof -ti:${PORT} | xargs kill`,
@@ -116,6 +137,7 @@ try {
 const server = Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
+  ...(tlsConfig ? { tls: tlsConfig } : {}),
 
   async fetch(req) {
     const origin = req.headers.get("Origin");
@@ -251,4 +273,6 @@ const server = Bun.serve({
   },
 });
 
-console.log(`cmux bridge server listening on http://${HOSTNAME}:${PORT}`);
+console.log(
+  `cmux bridge server listening on ${protocol}://${HOSTNAME}:${PORT}`,
+);
