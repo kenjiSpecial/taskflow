@@ -19,8 +19,21 @@ export function ProjectCell({ projectId, projectName, projectDescription, projec
   const menuOpen = useSignal(false);
   const editing = useSignal(false);
   const tagging = useSignal(false);
+  const copied = useSignal(false);
   const newName = useSignal(projectName);
   const newDescription = useSignal(projectDescription ?? "");
+
+  const handleCopyPrompt = async (e: Event) => {
+    e.stopPropagation();
+    const text = `${projectName}について以下のタスクを行ってください`;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied.value = true;
+      setTimeout(() => { copied.value = false; }, 1500);
+    } catch {
+      // fallback
+    }
+  };
 
   const handleSave = async () => {
     if (!projectId) return;
@@ -143,6 +156,22 @@ export function ProjectCell({ projectId, projectName, projectDescription, projec
             ) : (
               <span class="project-name-text">{projectName}</span>
             )}
+            <button
+              class="btn-ghost project-copy-btn"
+              onClick={handleCopyPrompt}
+              title="プロンプトをコピー"
+            >
+              {copied.value ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              )}
+            </button>
             {projectId && (
               <div class="project-menu-wrapper">
                 <button
