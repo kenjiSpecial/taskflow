@@ -32,7 +32,18 @@ mkcert -cert-file ~/.taskflow-cmux/cert.pem \
 
 証明書は2年間有効。期限切れ後は同じコマンドで再生成。
 
-## 3. taskflow-cmux の設定
+## 3. taskflow-cmux コマンドの登録
+
+`~/.zshrc`（または `~/.bashrc`）にエイリアスを追加:
+
+```bash
+echo 'alias taskflow-cmux="/path/to/taskflow/taskflow-cmux"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+`/path/to/taskflow/` はリポジトリをcloneした場所に置き換える。
+
+## 4. taskflow-cmux の設定
 
 ```bash
 cat > ~/.taskflow-cmux/config.json << 'EOF'
@@ -57,7 +68,7 @@ chmod 600 ~/.taskflow-cmux/config.json
 }
 ```
 
-## 4. ブリッジサーバーの起動
+## 5. ブリッジサーバーの起動
 
 ```bash
 cd /path/to/taskflow
