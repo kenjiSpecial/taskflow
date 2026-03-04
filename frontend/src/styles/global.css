@@ -901,6 +901,8 @@ select:focus {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .matrix-session-progress {
@@ -1250,9 +1252,32 @@ select:focus {
   background: var(--surface-hover);
 }
 
+/* Session title row with cmux button */
+.session-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.cmux-copy-btn {
+  padding: 0.125rem 0.1875rem;
+  line-height: 1;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.cmux-copy-btn:hover {
+  color: var(--accent);
+}
+
 .active-session-title {
   font-size: 0.875rem;
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .active-session-progress {

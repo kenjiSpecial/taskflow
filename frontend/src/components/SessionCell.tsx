@@ -2,6 +2,7 @@ import { useSignal } from "@preact/signals";
 import type { WorkSession } from "../lib/api";
 import { expandedSessionId, doneExpandedProjects, toggleDoneExpanded } from "../stores/app-store";
 import { addSession } from "../stores/session-store";
+import { CmuxCopyButton } from "./CmuxCopyButton";
 
 interface Props {
   sessions: WorkSession[];
@@ -45,7 +46,10 @@ export function SessionCell({ sessions, status, projectId, isArchived }: Props) 
           class={`matrix-session-card ${expandedSessionId.value === s.id ? "expanded" : ""}`}
           onClick={() => handleCardClick(s.id)}
         >
-          <div class="matrix-session-title">{s.title}</div>
+          <div class="session-title-row">
+            <div class="matrix-session-title">{s.title}</div>
+            <CmuxCopyButton sessionId={s.id} />
+          </div>
           {s.task_total > 0 && (
             <div class="matrix-session-progress">
               <div class="progress-bar">

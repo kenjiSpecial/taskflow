@@ -6,6 +6,7 @@ import { ProjectCell } from "./ProjectCell";
 import { SessionCell } from "./SessionCell";
 import { TasksCell } from "./TasksCell";
 import { SessionInlineDetail } from "./SessionInlineDetail";
+import { CmuxCopyButton } from "./CmuxCopyButton";
 import type { Tag, WorkSession } from "../lib/api";
 import type { MatrixViewMode } from "./MatrixView";
 
@@ -29,7 +30,10 @@ function ActiveSessionCard({ session }: { session: WorkSession }) {
         expandedSessionId.value = isExpanded ? null : session.id;
       }}
     >
-      <div class="active-session-title">{session.title}</div>
+      <div class="session-title-row">
+        <div class="active-session-title">{session.title}</div>
+        <CmuxCopyButton sessionId={session.id} />
+      </div>
       {session.task_total > 0 && (
         <div class="active-session-progress">
           <div class="progress-bar">
@@ -57,7 +61,10 @@ function BadgeSessionCard({ session }: { session: WorkSession }) {
         expandedSessionId.value = isExpanded ? null : session.id;
       }}
     >
-      <div class="matrix-session-title">{session.title}</div>
+      <div class="session-title-row">
+        <div class="matrix-session-title">{session.title}</div>
+        <CmuxCopyButton sessionId={session.id} />
+      </div>
       {session.task_total > 0 && (
         <div class="matrix-session-progress">
           <div class="progress-bar">
