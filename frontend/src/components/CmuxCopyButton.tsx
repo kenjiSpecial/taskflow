@@ -1,7 +1,7 @@
 import { useSignal } from "@preact/signals";
-import { bridgeStartSession } from "../lib/bridge";
+import { bridgeOpenSession } from "../lib/bridge";
 
-type CmuxState = "idle" | "loading" | "success" | "error" | "fallback";
+type CmuxState = "idle" | "loading" | "success" | "focused" | "error" | "fallback";
 
 interface Props {
   sessionId: string;
@@ -16,9 +16,9 @@ export function CmuxCopyButton({ sessionId }: Props) {
 
     state.value = "loading";
     try {
-      const result = await bridgeStartSession(sessionId);
+      const result = await bridgeOpenSession(sessionId);
       if (result.ok) {
-        state.value = "success";
+        state.value = result.action === "focused" ? "focused" : "success";
       } else {
         state.value = "error";
       }
@@ -37,8 +37,9 @@ export function CmuxCopyButton({ sessionId }: Props) {
   };
 
   const title =
-    state.value === "loading" ? "workspace 作成中..." :
+    state.value === "loading" ? "workspace を開いています..." :
     state.value === "success" ? "workspace を作成しました" :
+    state.value === "focused" ? "workspace にフォーカスしました" :
     state.value === "error" ? "エラーが発生しました" :
     state.value === "fallback" ? "コマンドをコピーしました（サーバー未起動）" :
     "cmux workspace を開く";
@@ -56,7 +57,7 @@ export function CmuxCopyButton({ sessionId }: Props) {
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
         )}
-        {state.value === "success" && (
+        {(state.value === "success" || state.value === "focused") && (
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
