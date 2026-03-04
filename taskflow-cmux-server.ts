@@ -46,6 +46,19 @@ function stripAnsi(text: string): string {
 const scriptDir = import.meta.dir;
 const cmuxScript = `${scriptDir}/taskflow-cmux`;
 
+// Check if port is already in use
+try {
+  const check = await fetch(`http://${HOSTNAME}:${PORT}/health`);
+  if (check.ok) {
+    console.error(
+      `error: ポート ${PORT} は既に使用中です。既存のサーバーを停止してください:\n  lsof -ti:${PORT} | xargs kill`,
+    );
+    process.exit(1);
+  }
+} catch {
+  // Port is free — proceed
+}
+
 const server = Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
