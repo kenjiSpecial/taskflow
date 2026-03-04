@@ -43,6 +43,7 @@ Commands:
   update <session-id>  サイドバー情報を更新
   sync                 全アクティブセッションの状態を同期
   status               マッピング状態を表示
+  serve                ブリッジHTTPサーバーを起動 (port 19876)
 
 Environment:
   TASKFLOW_API_URL     API URL (default: https://taskflow.kenji-draemon.workers.dev)
@@ -615,6 +616,18 @@ cmd_sync() {
   log_success "同期完了"
 }
 
+# ─── Serve (Bridge HTTP Server) ──────────────────────────────────────────────
+
+cmd_serve() {
+  command -v bun >/dev/null 2>&1 || die "bun がインストールされていません。https://bun.sh からインストールしてください"
+  local script_dir
+  script_dir="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+  local server_script="${script_dir}/taskflow-cmux-server.ts"
+  [[ -f "$server_script" ]] || die "server script が見つかりません: ${server_script}"
+  log_info "ブリッジサーバーを起動中 (http://127.0.0.1:19876)..."
+  exec bun run "$server_script"
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -627,6 +640,7 @@ main() {
     status)  cmd_status ;;
     update)  cmd_update "$@" ;;
     sync)    cmd_sync ;;
+    serve)   cmd_serve ;;
     help|-h|--help) usage ;;
     "")      usage; exit 1 ;;
     *)       die "不明なコマンド: ${command}\n$(usage)" ;;
