@@ -113,6 +113,12 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
       ? { borderLeft: `3px solid ${projectColor}` }
       : {};
 
+    const key = projectId ?? "_uncategorized";
+    const badgeState = badgeExpandedProjects.value.get(key);
+    const pausedExpanded = badgeState?.has("paused") ?? false;
+    const doneExpanded = badgeState?.has("done") ?? false;
+    const hasBadgeExpanded = pausedExpanded || doneExpanded;
+
     return (
       <>
         <div class={`matrix-cell matrix-project-cell ${isArchived ? "archived" : ""}`} style={colorStyle}>
@@ -123,13 +129,60 @@ export function MatrixRow({ projectId, projectName, projectColor, projectDescrip
             projectTags={projectTags}
             isArchived={isArchived}
           />
+          <div class="card-badges">
+            {pausedSessions.value.length > 0 && (
+              <button
+                class={`card-badge badge-paused ${pausedExpanded ? "badge-active" : ""}`}
+                onClick={() => toggleBadgeExpanded(key, "paused")}
+                title="一時停止中のセッション"
+              >
+                ⏸ {pausedSessions.value.length}
+              </button>
+            )}
+            {doneSessions.value.length > 0 && (
+              <button
+                class={`card-badge badge-done ${doneExpanded ? "badge-active" : ""}`}
+                onClick={() => toggleBadgeExpanded(key, "done")}
+                title="完了したセッション"
+              >
+                ✓ {doneSessions.value.length}
+              </button>
+            )}
+          </div>
         </div>
         <SessionCell sessions={activeSessions.value} status="active" projectId={projectId} isArchived={isArchived} />
-        <SessionCell sessions={pausedSessions.value} status="paused" projectId={projectId} isArchived={isArchived} />
-        <SessionCell sessions={doneSessions.value} status="done" projectId={projectId} isArchived={isArchived} />
         <div class="matrix-cell matrix-tasks-cell">
           <TasksCell projectId={projectId} todos={projectTodos.value} isArchived={isArchived} viewMode="matrix" />
         </div>
+        {hasBadgeExpanded && (
+          <div class="matrix-badge-row">
+            <div class="matrix-badge-sections">
+              {pausedExpanded && pausedSessions.value.length > 0 && (
+                <div>
+                  <div class="badge-expanded-label">一時停止中</div>
+                  <div class="badge-expanded-list">
+                    {pausedSessions.value.map((s) => (
+                      <BadgeSessionCard key={s.id} session={s} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {doneExpanded && doneSessions.value.length > 0 && (
+                <div>
+                  <div class="badge-expanded-label">完了</div>
+                  <div class="badge-expanded-list">
+                    {doneSessions.value.slice(0, 5).map((s) => (
+                      <BadgeSessionCard key={s.id} session={s} />
+                    ))}
+                    {doneSessions.value.length > 5 && (
+                      <div class="badge-expanded-more">他 {doneSessions.value.length - 5} 件</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {expandedInThisCard.value && (
           <div class="matrix-detail-row">
             <SessionInlineDetail />

@@ -78,10 +78,8 @@ export function MatrixView() {
         </div>
       ) : (
         <div class="matrix">
-          <div class="matrix-header-cell" />
+          <div class="matrix-header-cell">Project</div>
           <div class="matrix-header-cell">Active</div>
-          <div class="matrix-header-cell">Paused</div>
-          <div class="matrix-header-cell">Done</div>
           <div class="matrix-header-cell">タスク</div>
           {rows}
           {uncategorizedRow}
