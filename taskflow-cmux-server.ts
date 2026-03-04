@@ -13,8 +13,9 @@ const ALLOWED_ORIGINS = [
   "https://taskflow-ui.pages.dev",
 ];
 
+// Accept both hyphenated and non-hyphenated UUIDs
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 
@@ -135,7 +136,8 @@ const server = Bun.serve({
       let body: { sessionId?: string };
       try {
         body = await req.json();
-      } catch {
+      } catch (e) {
+        console.error("JSON parse error:", e);
         return jsonResponse(
           { ok: false, message: "Invalid JSON" },
           400,
@@ -143,8 +145,10 @@ const server = Bun.serve({
         );
       }
 
+      console.log("POST /open body:", JSON.stringify(body));
       const sessionId = body.sessionId;
       if (!sessionId || !UUID_RE.test(sessionId)) {
+        console.error("Invalid sessionId:", sessionId);
         return jsonResponse(
           { ok: false, message: "Invalid sessionId (UUID format required)" },
           400,
