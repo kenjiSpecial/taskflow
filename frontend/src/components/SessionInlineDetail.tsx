@@ -174,6 +174,12 @@ export function SessionInlineDetail() {
         </div>
       </div>
 
+      {session.description && (
+        <div style={{ padding: "0 0.75rem", marginBottom: "0.5rem" }}>
+          <MarkdownContent content={session.description} class="session-log-content-md" />
+        </div>
+      )}
+
       <div class="inline-detail-body">
         {/* 関連タスク */}
         <div class="inline-detail-section">

@@ -82,6 +82,9 @@ export function SessionDetailPanel({ sessionId }: Props) {
 
   return (
     <div class="mt-1 rounded-lg bg-app-surface border border-t-2 border-app-accent p-4">
+      {session.description && (
+        <MarkdownContent content={session.description} class="text-sm mb-4 text-app-text-muted" />
+      )}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 関連タスク */}
         <div>
