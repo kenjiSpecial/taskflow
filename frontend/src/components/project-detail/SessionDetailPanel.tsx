@@ -1,5 +1,6 @@
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
+import { MarkdownContent } from "../MarkdownContent";
 import {
   sessions,
   sessionLogs,
@@ -154,7 +155,7 @@ export function SessionDetailPanel({ sessionId }: Props) {
               {sessionLogs.value.map((log) => (
                 <div key={log.id} class="rounded bg-app-bg border-l-2 border-app-accent px-3 py-2">
                   <div class="text-[0.625rem] text-app-text-muted mb-0.5">{formatDate(log.created_at)}</div>
-                  <div class="text-sm whitespace-pre-wrap">{log.content}</div>
+                  <MarkdownContent content={log.content} class="text-sm" />
                 </div>
               ))}
             </div>

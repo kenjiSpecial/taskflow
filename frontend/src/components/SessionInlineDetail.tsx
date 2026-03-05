@@ -1,6 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { expandedSessionId } from "../stores/app-store";
+import { MarkdownContent } from "./MarkdownContent";
 import {
   sessions,
   sessionLogs,
@@ -214,7 +215,7 @@ export function SessionInlineDetail() {
               {sessionLogs.value.map((log) => (
                 <div key={log.id} class="session-log-item">
                   <div class="session-log-time">{formatDate(log.created_at)}</div>
-                  <div class="session-log-content">{log.content}</div>
+                  <MarkdownContent content={log.content} class="session-log-content-md" />
                 </div>
               ))}
             </div>

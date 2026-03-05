@@ -455,6 +455,22 @@ select:focus {
   line-height: 1.5;
 }
 
+.session-log-content-md {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* マークダウンコンテンツのテーマ調整 */
+.prose {
+  --tw-prose-body: var(--text-muted);
+  --tw-prose-headings: var(--text);
+  --tw-prose-links: var(--accent);
+  --tw-prose-code: var(--text);
+  --tw-prose-bold: var(--text);
+  --tw-prose-quotes: var(--text-muted);
+  --tw-prose-hr: var(--border);
+}
+
 .session-log-form {
   display: flex;
   flex-direction: column;
