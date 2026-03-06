@@ -6,8 +6,37 @@ export const tags = signal<Tag[]>([]);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
-/** MatrixHeaderでのフィルタ用。nullなら全表示 */
-export const selectedTagId = signal<string | null>(null);
+/** ハッシュURL内のクエリパラメータを取得 */
+function getHashParams(): URLSearchParams {
+  const hash = window.location.hash;
+  const qIndex = hash.indexOf("?");
+  return new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex) : "");
+}
+
+/** ハッシュURL内のクエリパラメータを更新（replaceStateで履歴を汚さない） */
+function setHashParam(key: string, value: string | null) {
+  const hash = window.location.hash;
+  const qIndex = hash.indexOf("?");
+  const path = qIndex >= 0 ? hash.slice(0, qIndex) : hash;
+  const params = new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex) : "");
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
+  const qs = params.toString();
+  const newHash = qs ? `${path}?${qs}` : path;
+  history.replaceState(null, "", newHash);
+}
+
+/** MatrixHeaderでのフィルタ用。nullなら全表示。URL初期値から復元 */
+export const selectedTagId = signal<string | null>(getHashParams().get("tag"));
+
+/** タグを選択しURLも同期する */
+export function selectTag(tagId: string | null) {
+  selectedTagId.value = tagId;
+  setHashParam("tag", tagId);
+}
 
 export const presetTags = computed(() =>
   tags.value.filter((t) => t.is_preset),
@@ -23,6 +52,10 @@ export async function loadTags() {
   try {
     const res = await api.fetchTags();
     tags.value = res.tags;
+    // URLのタグIDが存在しない場合はリセット
+    if (selectedTagId.value && !res.tags.some((t) => t.id === selectedTagId.value)) {
+      selectTag(null);
+    }
   } catch (e) {
     error.value = (e as Error).message;
   } finally {

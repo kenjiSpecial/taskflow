@@ -1,7 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { showArchived } from "../stores/project-store";
 import { addProject } from "../stores/project-store";
-import { tags, selectedTagId } from "../stores/tag-store";
+import { tags, selectedTagId, selectTag } from "../stores/tag-store";
 import type { MatrixViewMode } from "./MatrixView";
 
 interface Props {
@@ -117,7 +117,7 @@ export function MatrixHeader({ viewMode, onViewChange }: Props) {
         <div class="tag-filter-bar">
           <button
             class={`tag-chip ${selectedTagId.value === null ? "tag-chip-active" : ""}`}
-            onClick={() => (selectedTagId.value = null)}
+            onClick={() => selectTag(null)}
           >
             すべて
           </button>
@@ -126,7 +126,7 @@ export function MatrixHeader({ viewMode, onViewChange }: Props) {
               key={tag.id}
               class={`tag-chip ${selectedTagId.value === tag.id ? "tag-chip-active" : ""}`}
               style={tag.color ? { "--tag-color": tag.color } as Record<string, string> : undefined}
-              onClick={() => (selectedTagId.value = selectedTagId.value === tag.id ? null : tag.id)}
+              onClick={() => selectTag(selectedTagId.value === tag.id ? null : tag.id)}
             >
               {tag.color && <span class="tag-dot" />}
               {tag.name}
