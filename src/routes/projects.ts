@@ -4,7 +4,7 @@ import { createProjectSchema, updateProjectSchema, listProjectsQuery } from "../
 import { tagLinkSchema } from "../validators/tag";
 import type { ProjectRow, TagRow } from "../lib/db";
 import { now, tagExists } from "../lib/db";
-import { publishRealtimeInvalidation } from "../realtime/publish";
+import { getOriginClientId, publishRealtimeInvalidation } from "../realtime/publish";
 
 const app = new Hono<AppEnv>();
 
@@ -26,10 +26,6 @@ function parseTagInfo(tagInfo: string | null): { id: string; name: string; color
     const [id, name, color, isPreset] = entry.split(":");
     return { id, name, color: color || null, is_preset: isPreset === "1" };
   });
-}
-
-function getOriginClientId(c: { req: { header(name: string): string | undefined } }) {
-  return c.req.header("X-Client-Id");
 }
 
 // GET /api/projects - プロジェクト一覧（集計付き + タグ情報）
@@ -101,13 +97,15 @@ app.post("/", async (c) => {
   ).bind(data.name, data.description ?? null, data.color ?? null, data.directory_path ?? null, ts, ts)
     .first<ProjectRow>();
 
-  await publishRealtimeInvalidation(c.env, {
-    resources: ["projects"],
-    reason: "project.created",
-    origin_client_id: getOriginClientId(c),
-    project_id: row?.id ?? null,
-    entity_id: row?.id,
-  });
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["projects"],
+      reason: "project.created",
+      origin_client_id: getOriginClientId(c),
+      project_id: row?.id ?? null,
+      entity_id: row?.id,
+    }),
+  );
 
   return c.json({ project: row }, 201);
 });
@@ -170,13 +168,15 @@ app.post("/:id/tags", async (c) => {
     "INSERT INTO project_tags (project_id, tag_id) VALUES (?, ?)",
   ).bind(id, parsed.data.tag_id).run();
 
-  await publishRealtimeInvalidation(c.env, {
-    resources: ["projects"],
-    reason: "project.tag_linked",
-    origin_client_id: getOriginClientId(c),
-    project_id: id,
-    entity_id: id,
-  });
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["projects"],
+      reason: "project.tag_linked",
+      origin_client_id: getOriginClientId(c),
+      project_id: id,
+      entity_id: id,
+    }),
+  );
 
   return c.json({ success: true }, 201);
 });
@@ -197,13 +197,15 @@ app.delete("/:id/tags/:tagId", async (c) => {
     "DELETE FROM project_tags WHERE project_id = ? AND tag_id = ?",
   ).bind(id, tagId).run();
 
-  await publishRealtimeInvalidation(c.env, {
-    resources: ["projects"],
-    reason: "project.tag_unlinked",
-    origin_client_id: getOriginClientId(c),
-    project_id: id,
-    entity_id: id,
-  });
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["projects"],
+      reason: "project.tag_unlinked",
+      origin_client_id: getOriginClientId(c),
+      project_id: id,
+      entity_id: id,
+    }),
+  );
 
   return c.json({ success: true });
 });
@@ -285,13 +287,15 @@ app.patch("/:id", async (c) => {
     id,
   ).first<ProjectRow>();
 
-  await publishRealtimeInvalidation(c.env, {
-    resources: ["projects"],
-    reason: "project.updated",
-    origin_client_id: getOriginClientId(c),
-    project_id: id,
-    entity_id: id,
-  });
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["projects"],
+      reason: "project.updated",
+      origin_client_id: getOriginClientId(c),
+      project_id: id,
+      entity_id: id,
+    }),
+  );
 
   return c.json({ project: row });
 });
@@ -318,13 +322,15 @@ app.delete("/:id", async (c) => {
     c.env.DB.prepare("UPDATE projects SET deleted_at = ?, updated_at = ? WHERE id = ?").bind(ts, ts, id),
   ]);
 
-  await publishRealtimeInvalidation(c.env, {
-    resources: ["projects", "todos", "sessions"],
-    reason: "project.deleted",
-    origin_client_id: getOriginClientId(c),
-    project_id: id,
-    entity_id: id,
-  });
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["projects", "todos", "sessions"],
+      reason: "project.deleted",
+      origin_client_id: getOriginClientId(c),
+      project_id: id,
+      entity_id: id,
+    }),
+  );
 
   return c.json({ success: true });
 });

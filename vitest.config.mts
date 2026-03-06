@@ -9,6 +9,7 @@ export default defineWorkersConfig({
         miniflare: {
           bindings: {
             API_TOKEN: "test-token",
+            REALTIME_INTERNAL_SECRET: "test-realtime-internal-secret",
           },
           d1Databases: {
             DB: "todo-test-db",

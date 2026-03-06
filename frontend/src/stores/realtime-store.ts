@@ -30,6 +30,7 @@ const currentOpenSessionId = computed(() => detailExpandedSessionId.value ?? exp
 let reconnectTimer: number | null = null;
 let flushTimer: number | null = null;
 const pendingResources = new Set<RealtimeResource>();
+let hasConnectedOnce = false;
 
 function resolveRealtimeUrl(): string {
   const apiBase = import.meta.env.VITE_API_URL;
@@ -128,9 +129,13 @@ export function connectRealtime() {
   socketRef.value = socket;
 
   socket.addEventListener("open", () => {
+    const shouldRunInitialSync = hasConnectedOnce;
+    hasConnectedOnce = true;
     reconnectAttempt.value = 0;
     realtimeStatus.value = "connected";
-    queueInitialSync();
+    if (shouldRunInitialSync) {
+      queueInitialSync();
+    }
   });
 
   socket.addEventListener("message", (event) => {
@@ -153,9 +158,10 @@ export function connectRealtime() {
   });
 
   socket.addEventListener("close", () => {
-    if (socketRef.value === socket) {
-      socketRef.value = null;
+    if (socketRef.value !== socket) {
+      return;
     }
+    socketRef.value = null;
     if (realtimeStatus.value !== "idle") {
       realtimeStatus.value = "disconnected";
       scheduleReconnect();
@@ -170,6 +176,7 @@ export function disconnectRealtime() {
   pendingResources.clear();
   reconnectAttempt.value = 0;
   realtimeStatus.value = "idle";
+  hasConnectedOnce = false;
 
   const socket = socketRef.value;
   socketRef.value = null;

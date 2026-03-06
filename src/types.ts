@@ -4,5 +4,6 @@ export interface AppEnv {
     REALTIME_HUB: DurableObjectNamespace;
     API_TOKEN: string;
     ENVIRONMENT: string;
+    REALTIME_INTERNAL_SECRET: string;
   };
 }

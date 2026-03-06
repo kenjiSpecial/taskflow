@@ -1,7 +1,10 @@
 import type { AppEnv } from "../types";
-import type { RealtimeInvalidationEvent } from "./publish";
+import {
+  realtimeInvalidationEventSchema,
+  type RealtimeInvalidationEvent,
+} from "./publish";
 
-export class RealtimeHub {
+export class RealtimeHub implements DurableObject {
   constructor(
     private readonly ctx: DurableObjectState,
     private readonly env: AppEnv["Bindings"],
@@ -11,7 +14,18 @@ export class RealtimeHub {
     const url = new URL(request.url);
 
     if (request.method === "POST" && url.pathname === "/publish") {
-      const event = await request.json<RealtimeInvalidationEvent>();
+      const secret = request.headers.get("X-Realtime-Internal-Secret");
+      if (secret !== this.env.REALTIME_INTERNAL_SECRET) {
+        return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      }
+
+      const body = await request.json().catch(() => null);
+      const parsed = realtimeInvalidationEventSchema.safeParse(body);
+      if (!parsed.success) {
+        return Response.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+      }
+
+      const event = parsed.data;
       this.broadcast(event);
       return Response.json({ ok: true });
     }
