@@ -554,6 +554,24 @@ select:focus {
   font-weight: 500;
 }
 
+.linked-task-children {
+  margin-left: 1.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--border);
+}
+
+.linked-task-item.subtask {
+  padding: 0.125rem 0.5rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.linked-task-item.subtask .linked-task-title {
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
 .session-task-progress {
   font-size: 0.75rem;
   color: var(--success);

@@ -12,7 +12,7 @@ import {
   unlinkTask,
   removeSession,
 } from "../../stores/session-store";
-import { todos, toggleTodo } from "../../stores/todo-store";
+import { todos, toggleTodo, childrenMap, taskProgress } from "../../stores/todo-store";
 import { detailExpandedSessionId } from "../../stores/app-store";
 import type { Todo } from "../../lib/api";
 
@@ -35,6 +35,7 @@ export function SessionDetailPanel({ sessionId }: Props) {
   const newLog = useSignal("");
   const searchQuery = useSignal("");
   const showResults = useSignal(false);
+  const expandedTasks = useSignal<Set<string>>(new Set());
 
   useEffect(() => {
     loadSessionLogs(sessionId);
@@ -127,25 +128,68 @@ export function SessionDetailPanel({ sessionId }: Props) {
             <p class="text-sm text-app-text-muted py-2 text-center">紐付けタスクなし</p>
           ) : (
             <div class="flex flex-col gap-1">
-              {linkedTasks.value.map((todo) => (
-                <div key={todo.id} class="flex items-center gap-2 px-2 py-1 rounded hover:bg-app-surface-hover">
-                  <input
-                    type="checkbox"
-                    class="w-3.5 h-3.5 accent-[var(--accent)] cursor-pointer flex-shrink-0"
-                    checked={todo.status === "completed"}
-                    onChange={() => handleToggleTodo(todo)}
-                  />
-                  <span class={`text-sm flex-1 truncate ${todo.status === "completed" ? "line-through text-app-text-muted" : ""}`}>
-                    {todo.title}
-                  </span>
-                  <button
-                    class="text-xs text-app-text-muted hover:text-app-danger"
-                    onClick={() => unlinkTask(sessionId, todo.id)}
-                  >
-                    解除
-                  </button>
-                </div>
-              ))}
+              {linkedTasks.value.map((todo) => {
+                const children = childrenMap.value.get(todo.id) || [];
+                const progress = taskProgress.value.get(todo.id);
+                const isExpanded = expandedTasks.value.has(todo.id);
+                const toggleExpand = () => {
+                  const next = new Set(expandedTasks.value);
+                  if (next.has(todo.id)) next.delete(todo.id);
+                  else next.add(todo.id);
+                  expandedTasks.value = next;
+                };
+                return (
+                  <div key={todo.id}>
+                    <div class="flex items-center gap-2 px-2 py-1 rounded hover:bg-app-surface-hover">
+                      {children.length > 0 && (
+                        <button
+                          class="text-[0.625rem] text-app-text-muted w-3 flex-shrink-0"
+                          onClick={toggleExpand}
+                        >
+                          {isExpanded ? "▼" : "▶"}
+                        </button>
+                      )}
+                      <input
+                        type="checkbox"
+                        class="w-3.5 h-3.5 accent-[var(--accent)] cursor-pointer flex-shrink-0"
+                        checked={todo.status === "completed"}
+                        onChange={() => handleToggleTodo(todo)}
+                      />
+                      <span class={`text-sm flex-1 truncate ${todo.status === "completed" ? "line-through text-app-text-muted" : ""}`}>
+                        {todo.title}
+                      </span>
+                      {progress && progress.total > 0 && (
+                        <span class="text-[0.625rem] text-app-text-muted flex-shrink-0">
+                          [{progress.completed}/{progress.total}]
+                        </span>
+                      )}
+                      <button
+                        class="text-xs text-app-text-muted hover:text-app-danger"
+                        onClick={() => unlinkTask(sessionId, todo.id)}
+                      >
+                        解除
+                      </button>
+                    </div>
+                    {isExpanded && children.length > 0 && (
+                      <div class="ml-8 border-l border-app-border pl-2">
+                        {children.map((child) => (
+                          <div key={child.id} class="flex items-center gap-2 px-2 py-0.5">
+                            <input
+                              type="checkbox"
+                              class="w-3 h-3 accent-[var(--accent)] flex-shrink-0"
+                              checked={child.status === "completed"}
+                              disabled
+                            />
+                            <span class={`text-xs flex-1 truncate ${child.status === "completed" ? "line-through text-app-text-muted" : "text-app-text-muted"}`}>
+                              {child.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

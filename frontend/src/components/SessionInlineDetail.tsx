@@ -15,7 +15,7 @@ import {
   linkTask,
   unlinkTask,
 } from "../stores/session-store";
-import { todos, toggleTodo } from "../stores/todo-store";
+import { todos, toggleTodo, childrenMap, taskProgress } from "../stores/todo-store";
 import type { Todo } from "../lib/api";
 
 const statusLabel: Record<string, string> = {
@@ -93,6 +93,7 @@ function TaskSearch({ sessionId }: { sessionId: string }) {
 
 export function SessionInlineDetail() {
   const newLog = useSignal("");
+  const expandedTasks = useSignal<Set<string>>(new Set());
   const sessionId = expandedSessionId.value;
 
   useEffect(() => {
@@ -191,24 +192,66 @@ export function SessionInlineDetail() {
             </div>
           ) : (
             <div class="linked-task-list">
-              {linkedTasks.value.map((todo) => (
-                <div key={todo.id} class={`linked-task-item ${todo.status === "completed" ? "completed" : ""}`}>
-                  <input
-                    type="checkbox"
-                    class="todo-checkbox"
-                    checked={todo.status === "completed"}
-                    onChange={() => handleToggleTodo(todo)}
-                  />
-                  <span class="linked-task-title" style={{ flex: 1 }}>{todo.title}</span>
-                  <button
-                    class="btn-ghost"
-                    style={{ fontSize: "0.75rem" }}
-                    onClick={() => unlinkTask(sessionId, todo.id)}
-                  >
-                    解除
-                  </button>
-                </div>
-              ))}
+              {linkedTasks.value.map((todo) => {
+                const children = childrenMap.value.get(todo.id) || [];
+                const progress = taskProgress.value.get(todo.id);
+                const isExpanded = expandedTasks.value.has(todo.id);
+                const toggleExpand = () => {
+                  const next = new Set(expandedTasks.value);
+                  if (next.has(todo.id)) next.delete(todo.id);
+                  else next.add(todo.id);
+                  expandedTasks.value = next;
+                };
+                return (
+                  <div key={todo.id}>
+                    <div class={`linked-task-item ${todo.status === "completed" ? "completed" : ""}`}>
+                      {children.length > 0 && (
+                        <button
+                          class="btn-toggle"
+                          style={{ fontSize: "0.625rem", minWidth: "0.75rem" }}
+                          onClick={toggleExpand}
+                        >
+                          {isExpanded ? "▼" : "▶"}
+                        </button>
+                      )}
+                      <input
+                        type="checkbox"
+                        class="todo-checkbox"
+                        checked={todo.status === "completed"}
+                        onChange={() => handleToggleTodo(todo)}
+                      />
+                      <span class="linked-task-title" style={{ flex: 1 }}>{todo.title}</span>
+                      {progress && progress.total > 0 && (
+                        <span style={{ fontSize: "0.625rem", color: "var(--text-muted)", flexShrink: 0 }}>
+                          [{progress.completed}/{progress.total}]
+                        </span>
+                      )}
+                      <button
+                        class="btn-ghost"
+                        style={{ fontSize: "0.75rem" }}
+                        onClick={() => unlinkTask(sessionId, todo.id)}
+                      >
+                        解除
+                      </button>
+                    </div>
+                    {isExpanded && children.length > 0 && (
+                      <div class="linked-task-children">
+                        {children.map((child) => (
+                          <div key={child.id} class={`linked-task-item subtask ${child.status === "completed" ? "completed" : ""}`}>
+                            <input
+                              type="checkbox"
+                              class="todo-checkbox"
+                              checked={child.status === "completed"}
+                              disabled
+                            />
+                            <span class="linked-task-title" style={{ flex: 1, fontSize: "0.8125rem" }}>{child.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
