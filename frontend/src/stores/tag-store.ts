@@ -17,7 +17,7 @@ function getHashParams(): URLSearchParams {
 function setHashParam(key: string, value: string | null) {
   const hash = window.location.hash;
   const qIndex = hash.indexOf("?");
-  const path = qIndex >= 0 ? hash.slice(0, qIndex) : hash;
+  const path = qIndex >= 0 ? hash.slice(0, qIndex) : (hash || "#/");
   const params = new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex) : "");
   if (value) {
     params.set(key, value);
