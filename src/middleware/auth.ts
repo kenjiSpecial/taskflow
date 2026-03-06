@@ -2,12 +2,15 @@ import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../types";
 
 export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  const isWebSocket = c.req.header("Upgrade")?.toLowerCase() === "websocket";
+  const queryToken = isWebSocket ? c.req.query("token") : null;
   const header = c.req.header("Authorization");
-  if (!header?.startsWith("Bearer ")) {
-    return c.json({ error: { code: "UNAUTHORIZED", message: "Missing or invalid Authorization header" } }, 401);
+  const token = queryToken ?? (header?.startsWith("Bearer ") ? header.slice(7) : null);
+
+  if (!token) {
+    return c.json({ error: { code: "UNAUTHORIZED", message: "Missing authentication token" } }, 401);
   }
 
-  const token = header.slice(7);
   if (token !== c.env.API_TOKEN) {
     return c.json({ error: { code: "UNAUTHORIZED", message: "Invalid token" } }, 401);
   }

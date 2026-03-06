@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [preact(), tailwindcss()],
   server: {
     proxy: {
+      "/api/realtime": {
+        target: "ws://localhost:8787",
+        ws: true,
+      },
       "/api": "http://localhost:8787",
       "/health": "http://localhost:8787",
     },

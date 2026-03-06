@@ -3,8 +3,13 @@ import type { AppEnv } from "../types";
 import type { TagRow } from "../lib/db";
 import { now } from "../lib/db";
 import { createTagSchema, updateTagSchema } from "../validators/tag";
+import { publishRealtimeInvalidation } from "../realtime/publish";
 
 const app = new Hono<AppEnv>();
+
+function getOriginClientId(c: { req: { header(name: string): string | undefined } }) {
+  return c.req.header("X-Client-Id");
+}
 
 // GET /api/tags - タグ一覧
 app.get("/", async (c) => {
@@ -40,6 +45,13 @@ app.post("/", async (c) => {
      VALUES (?, ?, ?, ?)
      RETURNING *`,
   ).bind(data.name, data.color ?? null, ts, ts).first<TagRow>();
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["tags", "projects", "todos"],
+    reason: "tag.created",
+    origin_client_id: getOriginClientId(c),
+    entity_id: tag?.id,
+  });
 
   return c.json({ tag }, 201);
 });
@@ -85,6 +97,13 @@ app.patch("/:id", async (c) => {
     id,
   ).first<TagRow>();
 
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["tags", "projects", "todos"],
+    reason: "tag.updated",
+    origin_client_id: getOriginClientId(c),
+    entity_id: id,
+  });
+
   return c.json({ tag });
 });
 
@@ -107,6 +126,13 @@ app.delete("/:id", async (c) => {
     c.env.DB.prepare("DELETE FROM todo_tags WHERE tag_id = ?").bind(id),
     c.env.DB.prepare("UPDATE tags SET deleted_at = ?, updated_at = ? WHERE id = ?").bind(ts, ts, id),
   ]);
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["tags", "projects", "todos"],
+    reason: "tag.deleted",
+    origin_client_id: getOriginClientId(c),
+    entity_id: id,
+  });
 
   return c.json({ success: true });
 });

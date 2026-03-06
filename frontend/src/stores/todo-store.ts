@@ -44,6 +44,16 @@ export const taskProgress = computed(() => {
   return progress;
 });
 
+function upsertTodo(nextTodo: Todo) {
+  const index = todos.value.findIndex((todo) => todo.id === nextTodo.id);
+  if (index === -1) {
+    todos.value = [nextTodo, ...todos.value];
+    return;
+  }
+
+  todos.value = todos.value.map((todo) => (todo.id === nextTodo.id ? nextTodo : todo));
+}
+
 export async function loadTodos() {
   loading.value = true;
   error.value = null;
@@ -59,14 +69,14 @@ export async function loadTodos() {
 
 export async function addTodo(data: CreateTodoInput) {
   const res = await api.createTodo(data);
-  todos.value = [res.todo, ...todos.value];
-  loadProjects();
+  upsertTodo(res.todo);
+  void loadProjects();
   return res.todo;
 }
 
 export async function editTodo(id: string, data: UpdateTodoInput) {
   const res = await api.updateTodo(id, data);
-  todos.value = todos.value.map((t) => (t.id === id ? res.todo : t));
+  upsertTodo(res.todo);
 }
 
 export async function toggleTodo(id: string, currentStatus: string) {

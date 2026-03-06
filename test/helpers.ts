@@ -8,6 +8,7 @@ export async function applyMigrations() {
     "name TEXT NOT NULL CHECK(length(name) <= 100)," +
     "description TEXT CHECK(length(description) <= 2000)," +
     "color TEXT CHECK(length(color) <= 7)," +
+    "directory_path TEXT CHECK(length(directory_path) <= 500)," +
     "archived_at TEXT," +
     "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
     "updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +

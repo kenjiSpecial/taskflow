@@ -1,3 +1,5 @@
+import { getClientId } from "./client-id";
+
 // --- Tags ---
 
 export interface Tag {
@@ -139,6 +141,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       "Content-Type": "application/json",
       ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+      "X-Client-Id": getClientId(),
       ...init?.headers,
     },
   });

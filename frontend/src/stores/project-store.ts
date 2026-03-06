@@ -21,6 +21,18 @@ export const visibleProjects = computed(() => {
   return list;
 });
 
+function upsertProject(nextProject: Project) {
+  const index = projects.value.findIndex((project) => project.id === nextProject.id);
+  if (index === -1) {
+    projects.value = [...projects.value, nextProject];
+    return;
+  }
+
+  projects.value = projects.value.map((project) =>
+    project.id === nextProject.id ? { ...project, ...nextProject } : project,
+  );
+}
+
 export async function loadProjects() {
   loading.value = true;
   error.value = null;
@@ -36,13 +48,20 @@ export async function loadProjects() {
 
 export async function addProject(data: CreateProjectInput) {
   const res = await api.createProject(data);
-  projects.value = [...projects.value, { ...res.project, todo_count: 0, session_active_count: 0, session_paused_count: 0, session_done_count: 0, tags: [] }];
+  upsertProject({
+    ...res.project,
+    todo_count: res.project.todo_count ?? 0,
+    session_active_count: res.project.session_active_count ?? 0,
+    session_paused_count: res.project.session_paused_count ?? 0,
+    session_done_count: res.project.session_done_count ?? 0,
+    tags: res.project.tags ?? [],
+  });
   return res.project;
 }
 
 export async function editProject(id: string, data: UpdateProjectInput) {
   const res = await api.updateProject(id, data);
-  projects.value = projects.value.map((p) => (p.id === id ? { ...p, ...res.project } : p));
+  upsertProject(res.project);
 }
 
 export async function archiveProject(id: string) {

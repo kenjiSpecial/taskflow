@@ -23,6 +23,28 @@ export const activeSessions = computed(() =>
   sessions.value.filter((s) => s.status === "active" || s.status === "paused"),
 );
 
+function upsertSession(nextSession: WorkSession) {
+  const index = sessions.value.findIndex((session) => session.id === nextSession.id);
+  if (index === -1) {
+    sessions.value = [nextSession, ...sessions.value];
+    return;
+  }
+
+  sessions.value = sessions.value.map((session) =>
+    session.id === nextSession.id ? nextSession : session,
+  );
+}
+
+function upsertSessionLog(nextLog: SessionLog) {
+  const index = sessionLogs.value.findIndex((log) => log.id === nextLog.id);
+  if (index === -1) {
+    sessionLogs.value = [...sessionLogs.value, nextLog];
+    return;
+  }
+
+  sessionLogs.value = sessionLogs.value.map((log) => (log.id === nextLog.id ? nextLog : log));
+}
+
 export async function loadSessions() {
   loading.value = true;
   error.value = null;
@@ -38,13 +60,13 @@ export async function loadSessions() {
 
 export async function addSession(data: CreateSessionInput) {
   const res = await api.createSession(data);
-  sessions.value = [res.session, ...sessions.value];
+  upsertSession(res.session);
   return res.session;
 }
 
 export async function editSession(id: string, data: UpdateSessionInput) {
   const res = await api.updateSession(id, data);
-  sessions.value = sessions.value.map((s) => (s.id === id ? res.session : s));
+  upsertSession(res.session);
 }
 
 export async function removeSession(id: string) {
@@ -63,7 +85,7 @@ export async function loadSessionLogs(sessionId: string) {
 
 export async function addSessionLog(sessionId: string, content: string) {
   const res = await api.createSessionLog(sessionId, { content });
-  sessionLogs.value = [...sessionLogs.value, res.log];
+  upsertSessionLog(res.log);
   sessions.value = sessions.value.map((s) =>
     s.id === sessionId ? { ...s, updated_at: res.log.created_at } : s,
   );

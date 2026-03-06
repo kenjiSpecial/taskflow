@@ -7,6 +7,8 @@ import todos from "./routes/todos";
 import projects from "./routes/projects";
 import sessions from "./routes/sessions";
 import tags from "./routes/tags";
+import realtime from "./routes/realtime";
+export { RealtimeHub } from "./realtime/RealtimeHub";
 
 const app = new Hono<AppEnv>();
 
@@ -18,6 +20,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 // 認証が必要なルート
 app.use("/api/*", authMiddleware);
+app.route("/api/realtime", realtime);
 app.route("/api/todos", todos);
 app.route("/api/projects", projects);
 app.route("/api/sessions", sessions);

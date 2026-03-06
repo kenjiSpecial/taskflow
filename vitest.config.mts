@@ -13,6 +13,9 @@ export default defineWorkersConfig({
           d1Databases: {
             DB: "todo-test-db",
           },
+          durableObjects: {
+            REALTIME_HUB: "RealtimeHub",
+          },
         },
       },
     },

@@ -9,6 +9,7 @@ export async function applyMigrations() {
     "0003_add_parent_id_sort_order.sql",
     "0004_create_projects.sql",
     "0005_create_tags.sql",
+    "0006_add_project_directory_path.sql",
   ];
 
   for (const file of migrationFiles) {

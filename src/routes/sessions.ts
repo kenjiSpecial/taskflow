@@ -10,8 +10,13 @@ import {
   listSessionLogsQuery,
   linkSessionTaskSchema,
 } from "../validators/session";
+import { publishRealtimeInvalidation } from "../realtime/publish";
 
 const app = new Hono<AppEnv>();
+
+function getOriginClientId(c: { req: { header(name: string): string | undefined } }) {
+  return c.req.header("X-Client-Id");
+}
 
 // GET /api/sessions - 一覧
 app.get("/", async (c) => {
@@ -123,6 +128,14 @@ app.post("/", async (c) => {
     timestamp,
   ).first<WorkSessionRow>();
 
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "sessions"],
+    reason: "session.created",
+    origin_client_id: getOriginClientId(c),
+    project_id: session?.project_id ?? null,
+    entity_id: session?.id,
+  });
+
   return c.json({ session }, 201);
 });
 
@@ -171,6 +184,14 @@ app.patch("/:id", async (c) => {
     `UPDATE work_sessions SET ${sets.join(", ")} WHERE id = ? RETURNING *`,
   ).bind(...params).first<WorkSessionRow>();
 
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "sessions"],
+    reason: "session.updated",
+    origin_client_id: getOriginClientId(c),
+    project_id: session?.project_id ?? existing.project_id ?? null,
+    entity_id: id,
+  });
+
   return c.json({ session });
 });
 
@@ -189,6 +210,14 @@ app.delete("/:id", async (c) => {
   await c.env.DB.prepare(
     "UPDATE work_sessions SET deleted_at = ?, updated_at = ? WHERE id = ?",
   ).bind(timestamp, timestamp, id).run();
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "sessions"],
+    reason: "session.deleted",
+    origin_client_id: getOriginClientId(c),
+    project_id: existing.project_id ?? null,
+    entity_id: id,
+  });
 
   return c.json({ success: true });
 });
@@ -266,6 +295,15 @@ app.post("/:id/tasks", async (c) => {
   ]);
 
   const sessionTask = result.results[0] as SessionTaskRow;
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["sessions", "session_tasks"],
+    reason: "session_task.linked",
+    origin_client_id: getOriginClientId(c),
+    project_id: session.project_id ?? null,
+    entity_id: id,
+  });
+
   return c.json({ session_task: sessionTask }, 201);
 });
 
@@ -293,6 +331,14 @@ app.delete("/:id/tasks/:todoId", async (c) => {
   await c.env.DB.prepare(
     "DELETE FROM session_tasks WHERE session_id = ? AND todo_id = ?",
   ).bind(id, todoId).run();
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["sessions", "session_tasks"],
+    reason: "session_task.unlinked",
+    origin_client_id: getOriginClientId(c),
+    project_id: session.project_id ?? null,
+    entity_id: id,
+  });
 
   return c.json({ success: true });
 });
@@ -366,6 +412,15 @@ app.post("/:id/logs", async (c) => {
   ]);
 
   const logRow = log.results[0] as SessionLogRow;
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["sessions", "session_logs"],
+    reason: "session_log.created",
+    origin_client_id: getOriginClientId(c),
+    project_id: session.project_id ?? null,
+    entity_id: id,
+  });
+
   return c.json({ log: logRow }, 201);
 });
 

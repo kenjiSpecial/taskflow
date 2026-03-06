@@ -4,6 +4,7 @@ import type { TodoRow, WorkSessionRow, TagRow } from "../lib/db";
 import { now, projectExists, tagExists } from "../lib/db";
 import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema } from "../validators/todo";
 import { tagLinkSchema } from "../validators/tag";
+import { publishRealtimeInvalidation } from "../realtime/publish";
 
 const app = new Hono<AppEnv>();
 
@@ -17,6 +18,10 @@ function parseTagInfo(tagInfo: string | null): { id: string; name: string; color
     const [id, name, color, isPreset] = entry.split(":");
     return { id, name, color: color || null, is_preset: isPreset === "1" };
   });
+}
+
+function getOriginClientId(c: { req: { header(name: string): string | undefined } }) {
+  return c.req.header("X-Client-Id");
 }
 
 // GET /api/todos - 一覧
@@ -128,6 +133,13 @@ app.patch("/reorder", async (c) => {
   });
 
   await c.env.DB.batch(stmts);
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["todos"],
+    reason: "todo.reordered",
+    origin_client_id: getOriginClientId(c),
+  });
+
   return c.json({ success: true });
 });
 
@@ -202,6 +214,14 @@ app.post("/", async (c) => {
     timestamp,
     timestamp,
   ).first<TodoRow>();
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "todos", "sessions"],
+    reason: "todo.created",
+    origin_client_id: getOriginClientId(c),
+    project_id: todo?.project_id ?? null,
+    entity_id: todo?.id,
+  });
 
   return c.json({ todo }, 201);
 });
@@ -282,6 +302,14 @@ app.patch("/:id", async (c) => {
     `UPDATE todos SET ${sets.join(", ")} WHERE id = ? RETURNING *`,
   ).bind(...params).first<TodoRow>();
 
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "todos", "sessions"],
+    reason: "todo.updated",
+    origin_client_id: getOriginClientId(c),
+    project_id: todo?.project_id ?? existing.project_id ?? null,
+    entity_id: id,
+  });
+
   return c.json({ todo });
 });
 
@@ -361,6 +389,13 @@ app.post("/:id/tags", async (c) => {
     "INSERT INTO todo_tags (todo_id, tag_id) VALUES (?, ?)",
   ).bind(id, parsed.data.tag_id).run();
 
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["todos"],
+    reason: "todo.tag_linked",
+    origin_client_id: getOriginClientId(c),
+    entity_id: id,
+  });
+
   return c.json({ success: true }, 201);
 });
 
@@ -379,6 +414,13 @@ app.delete("/:id/tags/:tagId", async (c) => {
   await c.env.DB.prepare(
     "DELETE FROM todo_tags WHERE todo_id = ? AND tag_id = ?",
   ).bind(id, tagId).run();
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["todos"],
+    reason: "todo.tag_unlinked",
+    origin_client_id: getOriginClientId(c),
+    entity_id: id,
+  });
 
   return c.json({ success: true });
 });
@@ -402,6 +444,14 @@ app.delete("/:id", async (c) => {
     c.env.DB.prepare("UPDATE todos SET deleted_at = ?, updated_at = ? WHERE id = ?").bind(timestamp, timestamp, id),
     c.env.DB.prepare("UPDATE todos SET deleted_at = ?, updated_at = ? WHERE parent_id = ? AND deleted_at IS NULL").bind(timestamp, timestamp, id),
   ]);
+
+  await publishRealtimeInvalidation(c.env, {
+    resources: ["projects", "todos", "sessions"],
+    reason: "todo.deleted",
+    origin_client_id: getOriginClientId(c),
+    project_id: existing.project_id ?? null,
+    entity_id: id,
+  });
 
   return c.json({ success: true });
 });
