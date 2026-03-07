@@ -369,32 +369,39 @@ cmd_start() {
   fi
   work_dir=$(resolve_project_dir "$project_name" "$project_id" 2>/dev/null || true)
 
-  # Claude Code 初期プロンプトを組み立て
-  local claude_prompt
-  claude_prompt="セッション「${session_title}」を開始しました。"
+  # Claude Code 初期プロンプトを組み立て（LLM生成 or フォールバック）
+  local script_dir
+  script_dir="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+  local prompt_script="${script_dir}/prompt-generator.ts"
 
-  # プロジェクト情報
-  if [[ -n "$project_name" ]]; then
-    claude_prompt="${claude_prompt}\n\nプロジェクト: ${project_name}"
-    if [[ -n "$project_desc" ]]; then
-      claude_prompt="${claude_prompt}\n${project_desc}"
-    fi
-    if [[ -n "$work_dir" && -d "$work_dir" ]]; then
-      claude_prompt="${claude_prompt}\n作業ディレクトリ: ${work_dir}"
-    fi
+  local claude_prompt=""
+  if [[ -f "$prompt_script" ]] && command -v bun >/dev/null 2>&1; then
+    log_info "プロンプトを生成中..."
+    claude_prompt=$(timeout 15 bun run "$prompt_script" --session-id "$session_id" 2>/dev/null) || {
+      log_warn "プロンプト生成に失敗。フォールバックテンプレートを使用します"
+      claude_prompt=""
+    }
   fi
 
-  # 関連タスク
-  local task_count
-  task_count=$(echo "$tasks_json" | jq 'length')
-  if [[ "$task_count" -gt 0 ]]; then
-    claude_prompt="${claude_prompt}\n\n関連タスク:"
-    claude_prompt="${claude_prompt}\n$(echo "$tasks_json" | jq -r '.[] | (if .status == "completed" then "  [完了] " else "  [未着手] " end) + .title')"
+  # フォールバック（LLM生成が使えない場合）
+  if [[ -z "$claude_prompt" ]]; then
+    claude_prompt="セッション「${session_title}」を開始しました。"
+    if [[ -n "$project_name" ]]; then
+      claude_prompt="${claude_prompt}\nプロジェクト: ${project_name}"
+      if [[ -n "$project_desc" ]]; then
+        claude_prompt="${claude_prompt}\n${project_desc}"
+      fi
+    fi
+    local task_count
+    task_count=$(echo "$tasks_json" | jq 'length')
+    if [[ "$task_count" -gt 0 ]]; then
+      claude_prompt="${claude_prompt}\n\n関連タスク:"
+      claude_prompt="${claude_prompt}\n$(echo "$tasks_json" | jq -r '.[] | "  - " + .title')"
+    fi
+    claude_prompt="${claude_prompt}\n\n上記の情報を確認し、指示を待ってください。"
+    claude_prompt="${claude_prompt}\n指示があるまで実行や変更は行わないでください。"
+    claude_prompt="${claude_prompt}\n不明な点があれば、必ず質問してください。"
   fi
-
-  claude_prompt="${claude_prompt}\n\n上記の情報を確認し、指示を待ってください。"
-  claude_prompt="${claude_prompt}\n指示があるまで実行や変更は行わないでください。"
-  claude_prompt="${claude_prompt}\n不明な点があれば、必ず質問してください。"
 
   local escaped_prompt
   escaped_prompt=$(echo -e "$claude_prompt" | sed "s/'/'\\\\''/g")
