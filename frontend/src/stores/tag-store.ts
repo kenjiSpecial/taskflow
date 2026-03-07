@@ -6,36 +6,26 @@ export const tags = signal<Tag[]>([]);
 export const loading = signal(false);
 export const error = signal<string | null>(null);
 
-/** ハッシュURL内のクエリパラメータを取得 */
-function getHashParams(): URLSearchParams {
-  const hash = window.location.hash;
-  const qIndex = hash.indexOf("?");
-  return new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex) : "");
-}
-
-/** ハッシュURL内のクエリパラメータを更新（replaceStateで履歴を汚さない） */
-function setHashParam(key: string, value: string | null) {
-  const hash = window.location.hash;
-  const qIndex = hash.indexOf("?");
-  const path = qIndex >= 0 ? hash.slice(0, qIndex) : (hash || "#/");
-  const params = new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex) : "");
+/** URLクエリパラメータを更新（replaceStateで履歴を汚さない） */
+function setSearchParam(key: string, value: string | null) {
+  const url = new URL(location.href);
   if (value) {
-    params.set(key, value);
+    url.searchParams.set(key, value);
   } else {
-    params.delete(key);
+    url.searchParams.delete(key);
   }
-  const qs = params.toString();
-  const newHash = qs ? `${path}?${qs}` : path;
-  history.replaceState(null, "", newHash);
+  history.replaceState(null, "", url.toString());
 }
 
 /** MatrixHeaderでのフィルタ用。nullなら全表示。URL初期値から復元 */
-export const selectedTagId = signal<string | null>(getHashParams().get("tag"));
+export const selectedTagId = signal<string | null>(
+  new URL(location.href).searchParams.get("tag"),
+);
 
 /** タグを選択しURLも同期する */
 export function selectTag(tagId: string | null) {
   selectedTagId.value = tagId;
-  setHashParam("tag", tagId);
+  setSearchParam("tag", tagId);
 }
 
 export const presetTags = computed(() =>
