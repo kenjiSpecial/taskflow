@@ -118,6 +118,9 @@ export function SessionInlineDetail() {
 
   const handleStatusChange = async (status: "active" | "paused" | "done") => {
     await editSession(sessionId, { status });
+    if (status === "done") {
+      expandedSessionId.value = null;
+    }
   };
 
   const handleDelete = async () => {

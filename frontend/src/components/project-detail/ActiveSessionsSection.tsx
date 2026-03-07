@@ -30,6 +30,9 @@ export function ActiveSessionsSection({ sessions, projectId }: Props) {
   const handleDone = async (id: string, e: Event) => {
     e.stopPropagation();
     await editSession(id, { status: "done" });
+    if (detailExpandedSessionId.value === id) {
+      detailExpandedSessionId.value = null;
+    }
   };
 
   return (
