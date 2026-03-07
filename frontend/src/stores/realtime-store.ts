@@ -4,6 +4,7 @@ import { loadTodos } from "./todo-store";
 import { loadSessions, loadSessionLogs, loadLinkedTasks } from "./session-store";
 import { loadTags } from "./tag-store";
 import { detailExpandedSessionId, expandedSessionId } from "./app-store";
+import { showRealtimeNotice } from "./realtime-notice-store";
 import { getClientId } from "../lib/client-id";
 
 type RealtimeStatus = "idle" | "connecting" | "connected" | "disconnected" | "error";
@@ -143,7 +144,8 @@ export function connectRealtime() {
       const payload = JSON.parse(event.data as string) as RealtimeEvent;
       lastRealtimeEventAt.value = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
       if (payload.origin_client_id && payload.origin_client_id === getClientId()) return;
-      if (payload.type !== "invalidate" || !payload.resources) return;
+      if (payload.type !== "invalidate" || !payload.resources?.length) return;
+      showRealtimeNotice();
       for (const resource of payload.resources) {
         queueResource(resource);
       }

@@ -6,6 +6,7 @@ import { loadSessions } from "./stores/session-store";
 import { loadProjects } from "./stores/project-store";
 import { loadTags } from "./stores/tag-store";
 import { connectRealtime, disconnectRealtime } from "./stores/realtime-store";
+import { RealtimeNoticeToast } from "./components/RealtimeNoticeToast";
 import { MatrixView } from "./components/MatrixView";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { NotFound } from "./pages/NotFound";
@@ -36,6 +37,7 @@ export function App() {
   return (
     <Router hook={useHashLocation}>
       <div class="app-container">
+        <RealtimeNoticeToast />
         <Switch>
           <Route path="/" component={MatrixView} />
           <Route path="/projects/:id">
