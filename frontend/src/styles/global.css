@@ -638,23 +638,22 @@ select:focus {
 
 /* Matrix Layout */
 .app-container {
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 1rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0;
+  min-height: 100vh;
+}
+
+.app-container.chat-open {
+  grid-template-columns: 1fr 400px;
 }
 
 .app-main {
-  flex: 1;
   min-width: 0;
   max-width: 1400px;
   margin: 0 auto;
-  transition: max-width 0.3s ease;
-}
-
-.app-container.chat-open .app-main {
-  max-width: 1000px;
+  padding: 1rem;
+  width: 100%;
 }
 
 .realtime-toast {
@@ -1691,15 +1690,16 @@ select:focus {
 
 .chat-panel {
   width: 400px;
-  height: 100vh;
+  height: 600px;
   position: sticky;
-  top: 0;
-  flex-shrink: 0;
+  top: 1rem;
   background: var(--surface);
-  border-left: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   display: flex;
   flex-direction: column;
   animation: chat-slide-in 0.2s ease-out;
+  margin: 1rem 1rem 1rem 0;
 }
 
 @keyframes chat-slide-in {
