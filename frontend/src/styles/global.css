@@ -1690,7 +1690,7 @@ select:focus {
 
 .chat-panel {
   width: 400px;
-  height: 600px;
+  height: 100vh;
   position: sticky;
   top: 1rem;
   background: var(--surface);
