@@ -8,6 +8,7 @@ import { loadTags } from "./stores/tag-store";
 import { connectRealtime, disconnectRealtime } from "./stores/realtime-store";
 import { RealtimeNoticeToast } from "./components/RealtimeNoticeToast";
 import { ChatPanel } from "./components/ChatPanel";
+import { isChatOpen } from "./stores/chat-store";
 import { MatrixView } from "./components/MatrixView";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { NotFound } from "./pages/NotFound";
@@ -37,15 +38,17 @@ export function App() {
 
   return (
     <Router hook={useHashLocation}>
-      <div class="app-container">
-        <RealtimeNoticeToast />
-        <Switch>
-          <Route path="/" component={MatrixView} />
-          <Route path="/projects/:id">
-            {(params) => <ProjectDetailPage projectId={params.id} />}
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
+      <div class={`app-container ${isChatOpen.value ? "chat-open" : ""}`}>
+        <div class="app-main">
+          <RealtimeNoticeToast />
+          <Switch>
+            <Route path="/" component={MatrixView} />
+            <Route path="/projects/:id">
+              {(params) => <ProjectDetailPage projectId={params.id} />}
+            </Route>
+            <Route component={NotFound} />
+          </Switch>
+        </div>
         <ChatPanel />
       </div>
     </Router>

@@ -29,7 +29,7 @@ export interface PendingConfirmation {
 
 // ─── Signals ─────────────────────────────────────────────────────────────────
 
-export const isChatOpen = signal(false);
+export const isChatOpen = signal(true);
 export const messages = signal<ChatMessage[]>([]);
 export const conversationId = signal<string | null>(null);
 export const isStreaming = signal(false);

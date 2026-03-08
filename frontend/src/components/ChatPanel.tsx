@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "preact/hooks";
 import { useSignal, useComputed } from "@preact/signals";
+import { marked } from "marked";
 import {
   isChatOpen,
   messages,
@@ -20,6 +21,9 @@ import { loadTodos } from "../stores/todo-store";
 import { loadProjects } from "../stores/project-store";
 import { loadSessions } from "../stores/session-store";
 import { loadTags } from "../stores/tag-store";
+
+// marked設定: 同期モード、改行変換
+marked.use({ breaks: true, async: false });
 
 function ChatToggleButton() {
   return (
@@ -89,6 +93,17 @@ function ConfirmDialog() {
 }
 
 function MessageBubble({ msg }: { msg: { role: string; content: string } }) {
+  if (msg.role === "assistant") {
+    const html = marked.parse(msg.content) as string;
+    return (
+      <div class={`chat-message chat-message-assistant`}>
+        <div
+          class="chat-message-content chat-markdown"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    );
+  }
   return (
     <div class={`chat-message chat-message-${msg.role}`}>
       <div class="chat-message-content">{msg.content}</div>
@@ -191,7 +206,7 @@ export function ChatPanel() {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       handleSend();
     }

@@ -638,9 +638,23 @@ select:focus {
 
 /* Matrix Layout */
 .app-container {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 1rem;
+  display: flex;
+  gap: 0;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  transition: max-width 0.3s ease;
+}
+
+.app-container.chat-open .app-main {
+  max-width: 1000px;
 }
 
 .realtime-toast {
@@ -1676,16 +1690,15 @@ select:focus {
 }
 
 .chat-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
   width: 400px;
   height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
   background: var(--surface);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
   animation: chat-slide-in 0.2s ease-out;
 }
 
@@ -1896,9 +1909,64 @@ select:focus {
   cursor: not-allowed;
 }
 
+/* Chat Markdown */
+.chat-markdown {
+  white-space: normal;
+}
+.chat-markdown p {
+  margin: 0 0 0.5em;
+}
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+.chat-markdown ul,
+.chat-markdown ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+.chat-markdown li {
+  margin: 0.15em 0;
+}
+.chat-markdown code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.chat-markdown pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.75em;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.chat-markdown pre code {
+  background: none;
+  padding: 0;
+}
+.chat-markdown strong {
+  font-weight: 600;
+}
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.75em 0 0.25em;
+}
+.chat-markdown h1:first-child,
+.chat-markdown h2:first-child,
+.chat-markdown h3:first-child {
+  margin-top: 0;
+}
+
 @media (max-width: 768px) {
   .chat-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
     width: 100vw;
+    z-index: 1000;
   }
 }
 
