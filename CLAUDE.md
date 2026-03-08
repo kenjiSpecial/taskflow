@@ -14,7 +14,6 @@
 ## URLs
 
 - API: https://taskflow.kenji-draemon.workers.dev
-- Frontend: https://taskflow-ui.pages.dev
 
 ## 開発コマンド
 

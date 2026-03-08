@@ -17,6 +17,7 @@ const HOSTNAME = "127.0.0.1";
 
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:4173",
   "https://taskflow-ui.pages.dev",
 ];
@@ -334,6 +335,9 @@ async function handleChat(
         while (steps < MAX_AGENT_STEPS) {
           steps++;
 
+          // Collect tool results during streaming; push after assistant message
+          const pendingToolResults: Message[] = [];
+
           const s = piStream(model, context, {
             apiKey: config.openrouterApiKey,
             signal: abortController.signal,
@@ -373,7 +377,7 @@ async function handleChat(
                 });
 
                 if (!approved) {
-                  context.messages.push({
+                  pendingToolResults.push({
                     role: "toolResult",
                     toolCallId: toolCall.id,
                     toolName: toolCall.name,
@@ -403,7 +407,7 @@ async function handleChat(
                 ? `Error: ${error}`
                 : JSON.stringify(result);
 
-              context.messages.push({
+              pendingToolResults.push({
                 role: "toolResult",
                 toolCallId: toolCall.id,
                 toolName: toolCall.name,
@@ -427,8 +431,12 @@ async function handleChat(
           // Check if we need to continue (tool use means model wants to process results)
           const lastResult = await s.result();
 
-          // Add assistant message to context for next iteration
+          // Add assistant message (with tool_use blocks) BEFORE tool results
           context.messages.push(lastResult);
+          // Then add tool results
+          for (const tr of pendingToolResults) {
+            context.messages.push(tr);
+          }
 
           if (lastResult.stopReason !== "toolUse") {
             // Model finished with text response
