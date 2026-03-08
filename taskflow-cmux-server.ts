@@ -1,8 +1,16 @@
 #!/usr/bin/env bun
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import {
+  getModel,
+  stream as piStream,
+  validateToolCall,
+  type Context,
+  type Message,
+} from "@mariozechner/pi-ai";
+import { agentTools, destructiveTools, toolApiMap } from "./agent-tools";
 
 const PORT = 19876;
 const HOSTNAME = "127.0.0.1";
@@ -25,9 +33,15 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const inFlight = new Set<string>();
 
 const CONFIG_DIR = join(homedir(), ".taskflow-cmux");
+const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 const MAPPINGS_FILE = join(CONFIG_DIR, "mappings.json");
 const CERT_FILE = join(CONFIG_DIR, "cert.pem");
 const KEY_FILE = join(CONFIG_DIR, "key.pem");
+
+const DEFAULT_API_URL = "https://taskflow.kenji-draemon.workers.dev";
+const DEFAULT_CHAT_MODEL = "anthropic/claude-sonnet-4";
+const MAX_AGENT_STEPS = 10;
+const AGENT_TIMEOUT_MS = 60_000;
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -99,6 +113,354 @@ async function runCmuxStart(
   return { ok: false, message: stripAnsi(stderr) || stripAnsi(stdout) };
 }
 
+// ─── Agent Chat Config ───────────────────────────────────────────────────────
+
+interface AgentConfig {
+  apiUrl: string;
+  apiToken: string;
+  openrouterApiKey: string;
+  chatModel: string;
+}
+
+function loadAgentConfig(): AgentConfig {
+  let fileConfig: Record<string, unknown> = {};
+  if (existsSync(CONFIG_FILE)) {
+    try {
+      fileConfig = JSON.parse(readFileSync(CONFIG_FILE, "utf-8"));
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    apiUrl:
+      process.env.TASKFLOW_API_URL ||
+      (fileConfig.api_url as string) ||
+      DEFAULT_API_URL,
+    apiToken:
+      process.env.TASKFLOW_API_TOKEN ||
+      (fileConfig.api_token as string) ||
+      "",
+    openrouterApiKey:
+      process.env.OPENROUTER_API_KEY ||
+      (fileConfig.openrouter_api_key as string) ||
+      "",
+    chatModel:
+      (fileConfig.chat_model as string) || DEFAULT_CHAT_MODEL,
+  };
+}
+
+// ─── SSE Helpers ─────────────────────────────────────────────────────────────
+
+function sseEvent(
+  controller: ReadableStreamDirectController,
+  event: string,
+  data: unknown,
+): void {
+  controller.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+// ─── Taskflow API Client ─────────────────────────────────────────────────────
+
+async function callTaskflowApi(
+  config: AgentConfig,
+  method: string,
+  path: string,
+  body?: Record<string, unknown>,
+  queryParams?: Record<string, string>,
+): Promise<unknown> {
+  let url = `${config.apiUrl}${path}`;
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    url += `?${new URLSearchParams(queryParams).toString()}`;
+  }
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${config.apiToken}`,
+      "Content-Type": "application/json",
+    },
+    ...(body && method !== "GET" && method !== "DELETE"
+      ? { body: JSON.stringify(body) }
+      : {}),
+  });
+
+  return res.json();
+}
+
+// ─── Tool Executor ───────────────────────────────────────────────────────────
+
+async function executeTool(
+  config: AgentConfig,
+  toolName: string,
+  args: Record<string, unknown>,
+): Promise<{ result: unknown; error?: string }> {
+  const mapping = toolApiMap[toolName];
+  if (!mapping) {
+    return { result: null, error: `Unknown tool: ${toolName}` };
+  }
+
+  try {
+    const path = mapping.path(args);
+    const body = mapping.body?.(args);
+    const queryParams = mapping.queryParams?.(args);
+    const result = await callTaskflowApi(config, mapping.method, path, body, queryParams);
+    return { result };
+  } catch (e) {
+    return { result: null, error: String(e) };
+  }
+}
+
+// ─── Chat Request Types ──────────────────────────────────────────────────────
+
+interface ViewContext {
+  currentPage: string;
+  activeProjectId?: string;
+  activeProjectName?: string;
+  activeFilters?: {
+    status?: string;
+    tags?: string[];
+  };
+}
+
+interface ChatRequest {
+  message: string;
+  conversation_id?: string;
+  context?: ViewContext;
+  history?: Message[];
+}
+
+// ─── System Prompt Builder ───────────────────────────────────────────────────
+
+function buildSystemPrompt(viewContext?: ViewContext): string {
+  let prompt = `あなたはTaskflowのタスク管理アシスタントです。
+ユーザーの自然言語での指示に基づいて、タスク・プロジェクト・セッション・タグの操作を行います。
+
+ルール:
+- 操作を行う前に、必要に応じてツールで現状を確認してください
+- 削除操作は慎重に行ってください
+- 結果は簡潔に日本語で報告してください
+- 複数の操作が必要な場合は順番に実行してください`;
+
+  if (viewContext) {
+    prompt += "\n\n現在のユーザーの画面状態:";
+    prompt += `\n- ページ: ${viewContext.currentPage}`;
+    if (viewContext.activeProjectId) {
+      prompt += `\n- プロジェクト: ${viewContext.activeProjectName || "不明"} (id: ${viewContext.activeProjectId})`;
+    }
+    if (viewContext.activeFilters) {
+      if (viewContext.activeFilters.status) {
+        prompt += `\n- ステータスフィルタ: ${viewContext.activeFilters.status}`;
+      }
+      if (viewContext.activeFilters.tags?.length) {
+        prompt += `\n- タグフィルタ: ${viewContext.activeFilters.tags.join(", ")}`;
+      }
+    }
+    prompt +=
+      '\n\nユーザーが「タスクを追加して」等と言った場合、特に指定がなければこのプロジェクトにタスクを追加してください。';
+  }
+
+  return prompt;
+}
+
+// ─── Chat Handler (SSE) ─────────────────────────────────────────────────────
+
+// Pending confirmations: toolCallId → resolve function
+const pendingConfirmations = new Map<
+  string,
+  (approved: boolean) => void
+>();
+
+async function handleChat(
+  req: Request,
+  origin: string | null,
+): Promise<Response> {
+  const config = loadAgentConfig();
+
+  if (!config.openrouterApiKey) {
+    return Response.json(
+      { ok: false, message: "OpenRouter APIキーが設定されていません" },
+      { status: 500, headers: corsHeaders(origin) },
+    );
+  }
+
+  let chatReq: ChatRequest;
+  try {
+    chatReq = await req.json();
+  } catch {
+    return Response.json(
+      { ok: false, message: "Invalid JSON" },
+      { status: 400, headers: corsHeaders(origin) },
+    );
+  }
+
+  if (!chatReq.message?.trim()) {
+    return Response.json(
+      { ok: false, message: "message is required" },
+      { status: 400, headers: corsHeaders(origin) },
+    );
+  }
+
+  const abortController = new AbortController();
+  const timeout = setTimeout(
+    () => abortController.abort(),
+    AGENT_TIMEOUT_MS,
+  );
+
+  const body = new ReadableStream({
+    type: "direct",
+    async pull(controller) {
+      try {
+        const model = getModel("openrouter", config.chatModel as "auto");
+        const systemPrompt = buildSystemPrompt(chatReq.context);
+
+        // Build messages from history or start fresh
+        const messages: Message[] = chatReq.history || [];
+        messages.push({
+          role: "user",
+          content: chatReq.message,
+          timestamp: Date.now(),
+        });
+
+        const context: Context = {
+          systemPrompt,
+          messages,
+          tools: agentTools,
+        };
+
+        let steps = 0;
+
+        // Agent loop: stream → handle tool calls → repeat
+        while (steps < MAX_AGENT_STEPS) {
+          steps++;
+
+          const s = piStream(model, context, {
+            apiKey: config.openrouterApiKey,
+            signal: abortController.signal,
+            maxTokens: 4096,
+          });
+
+          for await (const event of s) {
+            if (event.type === "text_delta") {
+              sseEvent(controller, "token", { content: event.delta });
+            } else if (event.type === "toolcall_end") {
+              const toolCall = event.toolCall;
+
+              sseEvent(controller, "tool_call", {
+                tool_call_id: toolCall.id,
+                tool_name: toolCall.name,
+                args: toolCall.arguments,
+              });
+
+              // Check if destructive - wait for confirmation
+              if (destructiveTools.has(toolCall.name)) {
+                sseEvent(controller, "confirm", {
+                  tool_call_id: toolCall.id,
+                  tool_name: toolCall.name,
+                  args: toolCall.arguments,
+                  description: `${toolCall.name} を実行しますか？`,
+                });
+
+                const approved = await new Promise<boolean>((resolve) => {
+                  pendingConfirmations.set(toolCall.id, resolve);
+                  // Auto-reject after 30s
+                  setTimeout(() => {
+                    if (pendingConfirmations.has(toolCall.id)) {
+                      pendingConfirmations.delete(toolCall.id);
+                      resolve(false);
+                    }
+                  }, 30_000);
+                });
+
+                if (!approved) {
+                  context.messages.push({
+                    role: "toolResult",
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    content: [
+                      { type: "text", text: "ユーザーがこの操作をキャンセルしました。" },
+                    ],
+                    isError: false,
+                    timestamp: Date.now(),
+                  });
+
+                  sseEvent(controller, "tool_result", {
+                    tool_call_id: toolCall.id,
+                    cancelled: true,
+                  });
+                  continue;
+                }
+              }
+
+              // Execute the tool
+              const { result, error } = await executeTool(
+                config,
+                toolCall.name,
+                toolCall.arguments,
+              );
+
+              const resultText = error
+                ? `Error: ${error}`
+                : JSON.stringify(result);
+
+              context.messages.push({
+                role: "toolResult",
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                content: [{ type: "text", text: resultText }],
+                isError: !!error,
+                timestamp: Date.now(),
+              });
+
+              sseEvent(controller, "tool_result", {
+                tool_call_id: toolCall.id,
+                tool_name: toolCall.name,
+                result: error ? { error } : result,
+              });
+            } else if (event.type === "error") {
+              sseEvent(controller, "error", {
+                message: event.error?.errorMessage || "LLM error",
+              });
+            }
+          }
+
+          // Check if we need to continue (tool use means model wants to process results)
+          const lastResult = await s.result();
+
+          // Add assistant message to context for next iteration
+          context.messages.push(lastResult);
+
+          if (lastResult.stopReason !== "toolUse") {
+            // Model finished with text response
+            break;
+          }
+          // Loop continues: model made tool calls and needs to process results
+        }
+
+        sseEvent(controller, "done", {
+          conversation_id: chatReq.conversation_id || null,
+        });
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : "Unknown error";
+        sseEvent(controller, "error", { message: msg });
+      } finally {
+        clearTimeout(timeout);
+        controller.close();
+      }
+    },
+  } as unknown as UnderlyingSource);
+
+  return new Response(body, {
+    headers: {
+      ...corsHeaders(origin),
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
 // Resolve the path to taskflow-cmux script (same directory as this file)
 const scriptDir = import.meta.dir;
 const cmuxScript = `${scriptDir}/taskflow-cmux`;
@@ -150,6 +512,48 @@ const server = Bun.serve({
 
     // Health check
     if (url.pathname === "/health" && req.method === "GET") {
+      return jsonResponse({ ok: true }, 200, origin);
+    }
+
+    // POST /chat — agent chat with SSE streaming
+    if (url.pathname === "/chat" && req.method === "POST") {
+      return handleChat(req, origin);
+    }
+
+    // POST /chat/confirm — confirm destructive tool execution
+    if (url.pathname === "/chat/confirm" && req.method === "POST") {
+      let body: { tool_call_id?: string; approved?: boolean };
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResponse(
+          { ok: false, message: "Invalid JSON" },
+          400,
+          origin,
+        );
+      }
+
+      const { tool_call_id, approved } = body;
+      if (!tool_call_id) {
+        return jsonResponse(
+          { ok: false, message: "tool_call_id is required" },
+          400,
+          origin,
+        );
+      }
+
+      const resolve = pendingConfirmations.get(tool_call_id);
+      if (!resolve) {
+        return jsonResponse(
+          { ok: false, message: "No pending confirmation for this tool_call_id" },
+          404,
+          origin,
+        );
+      }
+
+      pendingConfirmations.delete(tool_call_id);
+      resolve(approved === true);
+
       return jsonResponse({ ok: true }, 200, origin);
     }
 
