@@ -789,14 +789,12 @@ select:focus {
 }
 
 .matrix-session-cell {
-  overflow-y: auto;
-  max-height: 300px;
+  height: auto;
 }
 
 .matrix-tasks-cell {
   gap: 0;
-  max-height: 300px;
-  overflow-y: auto;
+  height: auto;
 }
 
 .matrix-tasks-inner {
