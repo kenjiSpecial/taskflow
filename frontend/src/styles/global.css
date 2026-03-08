@@ -1692,14 +1692,12 @@ select:focus {
   width: 400px;
   height: 100vh;
   position: sticky;
-  top: 1rem;
+  top: 0;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   animation: chat-slide-in 0.2s ease-out;
-  margin: 1rem 1rem 1rem 0;
 }
 
 @keyframes chat-slide-in {
