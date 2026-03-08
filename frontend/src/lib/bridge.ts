@@ -138,6 +138,11 @@ export function bridgeChat(
   return controller;
 }
 
+export async function bridgeChatConfig(): Promise<{ model: string }> {
+  const res = await fetch(`${BRIDGE_URL}/chat/config`);
+  return res.json();
+}
+
 export async function bridgeConfirm(
   toolCallId: string,
   approved: boolean,

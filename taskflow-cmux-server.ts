@@ -524,6 +524,12 @@ const server = Bun.serve({
       return jsonResponse({ ok: true }, 200, origin);
     }
 
+    // GET /chat/config — チャット設定情報
+    if (url.pathname === "/chat/config" && req.method === "GET") {
+      const config = loadAgentConfig();
+      return jsonResponse({ model: config.chatModel }, 200, origin);
+    }
+
     // POST /chat — agent chat with SSE streaming
     if (url.pathname === "/chat" && req.method === "POST") {
       return handleChat(req, origin);

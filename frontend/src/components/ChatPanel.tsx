@@ -17,7 +17,7 @@ import {
   addToolExecution,
   updateToolExecution,
 } from "../stores/chat-store";
-import { bridgeChat, bridgeConfirm, type ViewContext } from "../lib/bridge";
+import { bridgeChat, bridgeChatConfig, bridgeConfirm, type ViewContext } from "../lib/bridge";
 import { loadTodos } from "../stores/todo-store";
 import { loadProjects } from "../stores/project-store";
 import { loadSessions } from "../stores/session-store";
@@ -126,6 +126,13 @@ export function ChatPanel() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.value.length, streamingContent.value]);
+
+  // Load model name on mount
+  useEffect(() => {
+    void bridgeChatConfig()
+      .then((c) => { chatModel.value = c.model; })
+      .catch(() => {});
+  }, []);
 
   // Focus input when panel opens
   useEffect(() => {
