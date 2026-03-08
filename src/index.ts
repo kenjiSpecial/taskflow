@@ -7,6 +7,7 @@ import todos from "./routes/todos";
 import projects from "./routes/projects";
 import sessions from "./routes/sessions";
 import tags from "./routes/tags";
+import chat from "./routes/chat";
 import realtime from "./routes/realtime";
 export { RealtimeHub } from "./realtime/RealtimeHub";
 
@@ -25,5 +26,6 @@ app.route("/api/todos", todos);
 app.route("/api/projects", projects);
 app.route("/api/sessions", sessions);
 app.route("/api/tags", tags);
+app.route("/api/chat", chat);
 
 export default app;

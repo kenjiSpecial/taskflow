@@ -78,6 +78,25 @@ export interface TodoTagRow {
   created_at: string;
 }
 
+export interface ChatConversationRow {
+  id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface ChatMessageRow {
+  id: string;
+  conversation_id: string;
+  role: string;
+  content: string | null;
+  tool_calls: string | null;
+  tool_call_id: string | null;
+  tool_name: string | null;
+  created_at: string;
+}
+
 export function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
