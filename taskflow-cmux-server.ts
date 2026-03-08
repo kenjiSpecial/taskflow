@@ -40,7 +40,7 @@ const CERT_FILE = join(CONFIG_DIR, "cert.pem");
 const KEY_FILE = join(CONFIG_DIR, "key.pem");
 
 const DEFAULT_API_URL = "https://taskflow.kenji-draemon.workers.dev";
-const DEFAULT_CHAT_MODEL = "anthropic/claude-sonnet-4";
+const DEFAULT_CHAT_MODEL = "google/gemini-3-flash-preview";
 const MAX_AGENT_STEPS = 10;
 const AGENT_TIMEOUT_MS = 60_000;
 
@@ -447,6 +447,7 @@ async function handleChat(
 
         sseEvent(controller, "done", {
           conversation_id: chatReq.conversation_id || null,
+          model: config.chatModel,
         });
       } catch (e) {
         const msg =

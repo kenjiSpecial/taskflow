@@ -1718,6 +1718,11 @@ select:focus {
   font-weight: 600;
   color: var(--text);
 }
+.chat-model-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
 .chat-panel-header-actions {
   display: flex;
   gap: 4px;

@@ -9,6 +9,7 @@ import {
   error,
   toolExecutions,
   pendingConfirmation,
+  chatModel,
   toggleChat,
   addUserMessage,
   addAssistantMessage,
@@ -176,7 +177,10 @@ export function ChatPanel() {
       onConfirm(data) {
         pendingConfirmation.value = data;
       },
-      onDone() {
+      onDone(data) {
+        if (data.model) {
+          chatModel.value = data.model;
+        }
         if (streamingContent.value) {
           addAssistantMessage(streamingContent.value);
         }
@@ -219,7 +223,12 @@ export function ChatPanel() {
   return (
     <div class="chat-panel">
       <div class="chat-panel-header">
-        <h3>アシスタント</h3>
+        <div>
+          <h3>アシスタント</h3>
+          {chatModel.value && (
+            <span class="chat-model-label">{chatModel.value}</span>
+          )}
+        </div>
         <div class="chat-panel-header-actions">
           <button
             class="btn-ghost btn-sm"

@@ -33,7 +33,7 @@ export interface ChatSSECallbacks {
   onToolCall: (data: { tool_call_id: string; tool_name: string; args: Record<string, unknown> }) => void;
   onToolResult: (data: { tool_call_id: string; tool_name?: string; result?: unknown; cancelled?: boolean }) => void;
   onConfirm: (data: { tool_call_id: string; tool_name: string; args: Record<string, unknown>; description: string }) => void;
-  onDone: (data: { conversation_id: string | null }) => void;
+  onDone: (data: { conversation_id: string | null; model?: string }) => void;
   onError: (data: { message: string }) => void;
 }
 
