@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   deploy-api:
@@ -15,22 +15,5 @@ jobs:
           node-version: "22"
       - run: npm ci
       - run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    name: Deploy Frontend (Pages)
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - run: cd frontend && npm ci
-      - run: cd frontend && npm run build
-        env:
-          VITE_API_URL: https://taskflow.kenji-draemon.workers.dev
-          VITE_API_TOKEN: ${{ secrets.TASKFLOW_API_TOKEN }}
-      - run: cd frontend && npx wrangler pages deploy ./dist --project-name=taskflow-ui --branch=main --commit-message="deploy ${{ github.sha }}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
