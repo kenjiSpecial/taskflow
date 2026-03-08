@@ -795,6 +795,8 @@ select:focus {
 
 .matrix-tasks-cell {
   gap: 0;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .matrix-tasks-inner {
