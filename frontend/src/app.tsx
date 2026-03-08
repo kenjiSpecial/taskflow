@@ -7,6 +7,7 @@ import { loadProjects } from "./stores/project-store";
 import { loadTags } from "./stores/tag-store";
 import { connectRealtime, disconnectRealtime } from "./stores/realtime-store";
 import { RealtimeNoticeToast } from "./components/RealtimeNoticeToast";
+import { ChatPanel } from "./components/ChatPanel";
 import { MatrixView } from "./components/MatrixView";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { NotFound } from "./pages/NotFound";
@@ -45,6 +46,7 @@ export function App() {
           </Route>
           <Route component={NotFound} />
         </Switch>
+        <ChatPanel />
       </div>
     </Router>
   );
