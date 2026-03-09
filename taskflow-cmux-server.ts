@@ -41,6 +41,11 @@ const KEY_FILE = join(CONFIG_DIR, "key.pem");
 
 const DEFAULT_API_URL = "https://taskflow.kenji-draemon.workers.dev";
 const DEFAULT_CHAT_MODEL = "google/gemini-3-flash-preview";
+const AVAILABLE_MODELS = [
+  "google/gemini-3-flash-preview",
+  "anthropic/claude-sonnet-4.6",
+  "moonshotai/kimi-k2.5",
+];
 const MAX_AGENT_STEPS = 10;
 const AGENT_TIMEOUT_MS = 60_000;
 
@@ -123,6 +128,9 @@ interface AgentConfig {
   chatModel: string;
 }
 
+// Runtime model override (not persisted, resets on restart)
+let runtimeModel: string | null = null;
+
 function loadAgentConfig(): AgentConfig {
   let fileConfig: Record<string, unknown> = {};
   if (existsSync(CONFIG_FILE)) {
@@ -147,7 +155,9 @@ function loadAgentConfig(): AgentConfig {
       (fileConfig.openrouter_api_key as string) ||
       "",
     chatModel:
-      (fileConfig.chat_model as string) || DEFAULT_CHAT_MODEL,
+      runtimeModel ||
+      (fileConfig.chat_model as string) ||
+      DEFAULT_CHAT_MODEL,
   };
 }
 
@@ -237,11 +247,19 @@ function buildSystemPrompt(viewContext?: ViewContext): string {
   let prompt = `あなたはTaskflowのタスク管理アシスタントです。
 ユーザーの自然言語での指示に基づいて、タスク・プロジェクト・セッション・タグの操作を行います。
 
-ルール:
+基本ルール:
 - 操作を行う前に、必要に応じてツールで現状を確認してください
 - 削除操作は慎重に行ってください
 - 結果は簡潔に日本語で報告してください
-- 複数の操作が必要な場合は順番に実行してください`;
+- 複数の操作が必要な場合は順番に実行してください
+
+タスク作成のルール:
+- タスク作成を依頼されたら、まず以下を確認する（ユーザーが「タスクのみ作成」「紐付け不要」等と明示した場合は省略可）:
+  1. プロジェクト紐付け: list_projects で既存プロジェクトを確認し、タスク内容に最も関連性の高いプロジェクトを提案する
+  2. セッション紐付け: 新しい作業セッションを作成してタスクをリンクするか確認する
+- 確認は簡潔に1回のメッセージにまとめる（例: 「プロジェクト『X』に紐付けますか？作業セッションも作成しますか？」）
+- ユーザーが「いいえ」「なし」等と答えた場合は紐付けなしで作成する
+- セッション作成時はタスクと同じプロジェクトに紐付け、link_task_to_session でタスクをリンクする`;
 
   if (viewContext) {
     prompt += "\n\n現在のユーザーの画面状態:";
@@ -258,7 +276,7 @@ function buildSystemPrompt(viewContext?: ViewContext): string {
       }
     }
     prompt +=
-      '\n\nユーザーが「タスクを追加して」等と言った場合、特に指定がなければこのプロジェクトにタスクを追加してください。';
+      "\n\nタスク作成時、特にプロジェクト指定がなければ現在表示中のプロジェクトを第一候補として提案してください。";
   }
 
   return prompt;
@@ -338,98 +356,106 @@ async function handleChat(
           // Collect tool results during streaming; push after assistant message
           const pendingToolResults: Message[] = [];
 
-          const s = piStream(model, context, {
-            apiKey: config.openrouterApiKey,
-            signal: abortController.signal,
-            maxTokens: 4096,
-          });
+          let lastResult;
+          try {
+            const s = piStream(model, context, {
+              apiKey: config.openrouterApiKey,
+              signal: abortController.signal,
+              maxTokens: 4096,
+            });
 
-          for await (const event of s) {
-            if (event.type === "text_delta") {
-              sseEvent(controller, "token", { content: event.delta });
-            } else if (event.type === "toolcall_end") {
-              const toolCall = event.toolCall;
+            for await (const event of s) {
+              if (event.type === "text_delta") {
+                sseEvent(controller, "token", { content: event.delta });
+              } else if (event.type === "toolcall_end") {
+                const toolCall = event.toolCall;
 
-              sseEvent(controller, "tool_call", {
-                tool_call_id: toolCall.id,
-                tool_name: toolCall.name,
-                args: toolCall.arguments,
-              });
-
-              // Check if destructive - wait for confirmation
-              if (destructiveTools.has(toolCall.name)) {
-                sseEvent(controller, "confirm", {
+                sseEvent(controller, "tool_call", {
                   tool_call_id: toolCall.id,
                   tool_name: toolCall.name,
                   args: toolCall.arguments,
-                  description: `${toolCall.name} を実行しますか？`,
                 });
 
-                const approved = await new Promise<boolean>((resolve) => {
-                  pendingConfirmations.set(toolCall.id, resolve);
-                  // Auto-reject after 30s
-                  setTimeout(() => {
-                    if (pendingConfirmations.has(toolCall.id)) {
-                      pendingConfirmations.delete(toolCall.id);
-                      resolve(false);
-                    }
-                  }, 30_000);
-                });
-
-                if (!approved) {
-                  pendingToolResults.push({
-                    role: "toolResult",
-                    toolCallId: toolCall.id,
-                    toolName: toolCall.name,
-                    content: [
-                      { type: "text", text: "ユーザーがこの操作をキャンセルしました。" },
-                    ],
-                    isError: false,
-                    timestamp: Date.now(),
-                  });
-
-                  sseEvent(controller, "tool_result", {
+                // Check if destructive - wait for confirmation
+                if (destructiveTools.has(toolCall.name)) {
+                  sseEvent(controller, "confirm", {
                     tool_call_id: toolCall.id,
-                    cancelled: true,
+                    tool_name: toolCall.name,
+                    args: toolCall.arguments,
+                    description: `${toolCall.name} を実行しますか？`,
                   });
-                  continue;
+
+                  const approved = await new Promise<boolean>((resolve) => {
+                    pendingConfirmations.set(toolCall.id, resolve);
+                    // Auto-reject after 30s
+                    setTimeout(() => {
+                      if (pendingConfirmations.has(toolCall.id)) {
+                        pendingConfirmations.delete(toolCall.id);
+                        resolve(false);
+                      }
+                    }, 30_000);
+                  });
+
+                  if (!approved) {
+                    pendingToolResults.push({
+                      role: "toolResult",
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.name,
+                      content: [
+                        { type: "text", text: "ユーザーがこの操作をキャンセルしました。" },
+                      ],
+                      isError: false,
+                      timestamp: Date.now(),
+                    });
+
+                    sseEvent(controller, "tool_result", {
+                      tool_call_id: toolCall.id,
+                      cancelled: true,
+                    });
+                    continue;
+                  }
                 }
+
+                // Execute the tool
+                const { result, error } = await executeTool(
+                  config,
+                  toolCall.name,
+                  toolCall.arguments,
+                );
+
+                const resultText = error
+                  ? `Error: ${error}`
+                  : JSON.stringify(result);
+
+                pendingToolResults.push({
+                  role: "toolResult",
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.name,
+                  content: [{ type: "text", text: resultText }],
+                  isError: !!error,
+                  timestamp: Date.now(),
+                });
+
+                sseEvent(controller, "tool_result", {
+                  tool_call_id: toolCall.id,
+                  tool_name: toolCall.name,
+                  result: error ? { error } : result,
+                });
+              } else if (event.type === "error") {
+                console.error(`[chat] LLM stream error (step ${steps}):`, event.error);
+                sseEvent(controller, "error", {
+                  message: event.error?.errorMessage || "LLM error",
+                });
               }
-
-              // Execute the tool
-              const { result, error } = await executeTool(
-                config,
-                toolCall.name,
-                toolCall.arguments,
-              );
-
-              const resultText = error
-                ? `Error: ${error}`
-                : JSON.stringify(result);
-
-              pendingToolResults.push({
-                role: "toolResult",
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                content: [{ type: "text", text: resultText }],
-                isError: !!error,
-                timestamp: Date.now(),
-              });
-
-              sseEvent(controller, "tool_result", {
-                tool_call_id: toolCall.id,
-                tool_name: toolCall.name,
-                result: error ? { error } : result,
-              });
-            } else if (event.type === "error") {
-              sseEvent(controller, "error", {
-                message: event.error?.errorMessage || "LLM error",
-              });
             }
-          }
 
-          // Check if we need to continue (tool use means model wants to process results)
-          const lastResult = await s.result();
+            lastResult = await s.result();
+          } catch (streamErr) {
+            const errMsg = streamErr instanceof Error ? streamErr.message : String(streamErr);
+            console.error(`[chat] Stream error (step ${steps}):`, errMsg);
+            sseEvent(controller, "error", { message: "LLMの応答中にエラーが発生しました" });
+            break;
+          }
 
           // Add assistant message (with tool_use blocks) BEFORE tool results
           context.messages.push(lastResult);
@@ -450,9 +476,8 @@ async function handleChat(
           model: config.chatModel,
         });
       } catch (e) {
-        const msg =
-          e instanceof Error ? e.message : "Unknown error";
-        sseEvent(controller, "error", { message: msg });
+        console.error("[chat] Unhandled error:", e);
+        sseEvent(controller, "error", { message: "チャット処理中にエラーが発生しました" });
       } finally {
         clearTimeout(timeout);
         controller.close();
@@ -527,7 +552,34 @@ const server = Bun.serve({
     // GET /chat/config — チャット設定情報
     if (url.pathname === "/chat/config" && req.method === "GET") {
       const config = loadAgentConfig();
-      return jsonResponse({ model: config.chatModel }, 200, origin);
+      return jsonResponse(
+        { model: config.chatModel, availableModels: AVAILABLE_MODELS },
+        200,
+        origin,
+      );
+    }
+
+    // POST /chat/config — モデル変更
+    if (url.pathname === "/chat/config" && req.method === "POST") {
+      let body: { model?: string };
+      try {
+        body = await req.json();
+      } catch {
+        return jsonResponse(
+          { ok: false, message: "Invalid JSON" },
+          400,
+          origin,
+        );
+      }
+      if (!body.model || !AVAILABLE_MODELS.includes(body.model)) {
+        return jsonResponse(
+          { ok: false, message: "Invalid model" },
+          400,
+          origin,
+        );
+      }
+      runtimeModel = body.model;
+      return jsonResponse({ ok: true, model: runtimeModel }, 200, origin);
     }
 
     // POST /chat — agent chat with SSE streaming

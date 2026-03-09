@@ -152,6 +152,29 @@ export const agentTools: Tool[] = [
     }),
   },
   {
+    name: "get_session_tasks",
+    description: "セッションにリンクされたタスク一覧を取得。",
+    parameters: Type.Object({
+      session_id: Type.String({ description: "セッションID" }),
+    }),
+  },
+  {
+    name: "link_task_to_session",
+    description: "タスクをセッションにリンク（紐付け）する。",
+    parameters: Type.Object({
+      session_id: Type.String({ description: "セッションID" }),
+      todo_id: Type.String({ description: "タスクID" }),
+    }),
+  },
+  {
+    name: "unlink_task_from_session",
+    description: "タスクのセッションへのリンクを解除する。この操作は破壊的です。",
+    parameters: Type.Object({
+      session_id: Type.String({ description: "セッションID" }),
+      todo_id: Type.String({ description: "タスクID" }),
+    }),
+  },
+  {
     name: "list_tags",
     description: "タグ一覧を取得。",
     parameters: Type.Object({}),
@@ -171,6 +194,7 @@ export const destructiveTools = new Set([
   "delete_todo",
   "delete_project",
   "delete_session",
+  "unlink_task_from_session",
 ]);
 
 // ツール名→API呼び出しのマッピング
@@ -308,6 +332,19 @@ export const toolApiMap: Record<string, ToolApiMapping> = {
   delete_session: {
     method: "DELETE",
     path: (args) => `/api/sessions/${args.id}`,
+  },
+  get_session_tasks: {
+    method: "GET",
+    path: (args) => `/api/sessions/${args.session_id}/tasks`,
+  },
+  link_task_to_session: {
+    method: "POST",
+    path: (args) => `/api/sessions/${args.session_id}/tasks`,
+    body: ({ todo_id }) => ({ todo_id }),
+  },
+  unlink_task_from_session: {
+    method: "DELETE",
+    path: (args) => `/api/sessions/${args.session_id}/tasks/${args.todo_id}`,
   },
   list_tags: {
     method: "GET",
