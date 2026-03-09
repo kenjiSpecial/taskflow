@@ -9,16 +9,21 @@ struct Todo: Codable, Identifiable {
     let dueDate: String?
     let projectId: String?
     let parentId: String?
+    let project: String?
+    let sortOrder: Int?
     let completedAt: String?
+    let deletedAt: String?
     let createdAt: String
     let updatedAt: String
 
     enum CodingKeys: String, CodingKey {
-        case id, title, description, status, priority
+        case id, title, description, status, priority, project
         case dueDate = "due_date"
         case projectId = "project_id"
         case parentId = "parent_id"
+        case sortOrder = "sort_order"
         case completedAt = "completed_at"
+        case deletedAt = "deleted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
