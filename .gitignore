@@ -7,3 +7,9 @@ frontend/.env.*
 .mf/
 frontend/node_modules/
 frontend/dist/
+
+# macOS menubar app
+macos-menubar/.build/
+macos-menubar/.swiftpm/
+xcuserdata/
+*.xcworkspace/xcuserdata/

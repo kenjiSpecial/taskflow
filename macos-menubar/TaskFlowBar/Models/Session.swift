@@ -1,0 +1,29 @@
+import Foundation
+
+struct WorkSession: Codable, Identifiable {
+    let id: String
+    let title: String
+    let description: String?
+    let status: String  // active | paused | done
+    let projectId: String?
+    let taskTotal: Int
+    let taskCompleted: Int
+    let createdAt: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, status
+        case projectId = "project_id"
+        case taskTotal = "task_total"
+        case taskCompleted = "task_completed"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+
+    var isActive: Bool { status == "active" }
+    var isPaused: Bool { status == "paused" }
+}
+
+struct SessionListResponse: Codable {
+    let sessions: [WorkSession]
+}
