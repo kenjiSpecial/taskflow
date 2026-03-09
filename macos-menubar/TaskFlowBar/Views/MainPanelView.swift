@@ -59,10 +59,13 @@ struct MainPanelView: View {
             // Footer
             HStack {
                 Button("Taskflowを開く") {
-                    if let url = URL(string: appState.apiURL.replacingOccurrences(
-                        of: "taskflow.kenji-draemon.workers.dev",
-                        with: "taskflow-ui.pages.dev"
-                    )) {
+                    let webURL = appState.apiURL.contains("localhost")
+                        ? "http://localhost:5173"
+                        : appState.apiURL.replacingOccurrences(
+                            of: "taskflow.kenji-draemon.workers.dev",
+                            with: "taskflow-ui.pages.dev"
+                        )
+                    if let url = URL(string: webURL) {
                         NSWorkspace.shared.open(url)
                     }
                 }

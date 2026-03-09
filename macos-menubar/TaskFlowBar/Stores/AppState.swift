@@ -13,7 +13,7 @@ class AppState {
 
     // Configuration
     var apiURL: String {
-        get { UserDefaults.standard.string(forKey: "apiURL") ?? "https://taskflow.kenji-draemon.workers.dev" }
+        get { UserDefaults.standard.string(forKey: "apiURL") ?? "http://localhost:8787" }
         set { UserDefaults.standard.set(newValue, forKey: "apiURL") }
     }
 
