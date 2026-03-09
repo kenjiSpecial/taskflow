@@ -11,15 +11,9 @@ struct TaskFlowBarApp: App {
                 .environment(appState)
         }
         .menuBarExtraStyle(.window)
-
-        Settings {
-            SettingsView()
-                .environment(appState)
-        }
     }
 
     init() {
-        // Configure API client on launch if token is set
         let state = AppState()
         if state.isConfigured {
             state.configure()

@@ -2,50 +2,62 @@ import SwiftUI
 
 struct MainPanelView: View {
     @Environment(AppState.self) var appState
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("TaskFlow")
+                if showSettings {
+                    Button {
+                        showSettings = false
+                    } label: {
+                        Image(systemName: "chevron.left")
+                    }
+                    .buttonStyle(.borderless)
+                }
+
+                Text(showSettings ? "設定" : "TaskFlow")
                     .font(.headline)
                 Spacer()
-                if appState.isLoading {
-                    ProgressView()
-                        .controlSize(.small)
+
+                if !showSettings {
+                    if appState.isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                    Button {
+                        Task { await appState.refreshData() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
                 }
-                Button {
-                    Task { await appState.refreshData() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.borderless)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
 
             Divider()
 
-            if !appState.isConfigured {
+            if showSettings {
+                SettingsInlineView()
+            } else if !appState.isConfigured {
                 unconfiguredView
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // Today's Todos
                         todoSection(
                             title: "今日のタスク",
                             icon: "calendar",
                             todos: appState.todayTodos
                         )
 
-                        // In Progress
                         todoSection(
                             title: "進行中",
                             icon: "play.circle",
                             todos: appState.inProgressTodos
                         )
 
-                        // Active Sessions
                         if !appState.activeSessions.isEmpty {
                             sessionSection
                         }
@@ -73,7 +85,9 @@ struct MainPanelView: View {
 
                 Spacer()
 
-                SettingsLink {
+                Button {
+                    showSettings.toggle()
+                } label: {
                     Image(systemName: "gear")
                 }
                 .buttonStyle(.borderless)
@@ -99,8 +113,8 @@ struct MainPanelView: View {
                 .foregroundStyle(.secondary)
             Text("APIトークンを設定してください")
                 .foregroundStyle(.secondary)
-            SettingsLink {
-                Text("設定を開く")
+            Button("設定を開く") {
+                showSettings = true
             }
             Spacer()
         }
@@ -174,7 +188,6 @@ struct TodoRow: View {
     }
 
     private func formatDate(_ dateString: String) -> String {
-        // Simple date display - just show month/day
         let parts = dateString.prefix(10).split(separator: "-")
         guard parts.count >= 3 else { return dateString }
         return "\(parts[1])/\(parts[2])"
