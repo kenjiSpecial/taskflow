@@ -11,7 +11,8 @@ let package = Package(
         .executableTarget(
             name: "TaskFlowBar",
             dependencies: ["HotKey"],
-            path: "TaskFlowBar"
+            path: "TaskFlowBar",
+            exclude: ["Info.plist"]
         ),
     ]
 )

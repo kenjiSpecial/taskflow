@@ -6,20 +6,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Setup notifications
-        NotificationManager.shared.setup()
-        Task {
+        Task { @MainActor in
+            NotificationManager.shared.setup()
             _ = await NotificationManager.shared.requestPermission()
         }
 
         // Register global hotkey: Cmd+Shift+T
         hotKey = HotKey(key: .t, modifiers: [.command, .shift])
-        hotKey?.keyDownHandler = { [weak self] in
-            self?.togglePanel()
+        hotKey?.keyDownHandler = {
+            Task { @MainActor in
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
-    }
-
-    private func togglePanel() {
-        // MenuBarExtra handles its own panel; activate the app to bring it forward
-        NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -2,6 +2,7 @@ import Foundation
 import ServiceManagement
 
 @Observable
+@MainActor
 class AppState {
     var todayTodos: [Todo] = []
     var inProgressTodos: [Todo] = []
@@ -32,27 +33,27 @@ class AppState {
         guard isConfigured, let url = URL(string: apiURL) else { return }
         apiClient = APIClient(baseURL: url, token: apiToken)
 
-        // Setup WebSocket
-        wsClient?.disconnect()
-        wsClient = WebSocketClient(baseURL: url, token: apiToken)
-        Task {
-            await wsClient?.onInvalidate = { [weak self] resources in
+        // Disconnect old WebSocket
+        if let old = wsClient {
+            Task { await old.disconnect() }
+        }
+
+        wsClient = WebSocketClient(baseURL: url, token: apiToken) { [weak self] resources in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
-                Task { @MainActor in
-                    if resources.contains("todos") {
-                        await self.refreshData()
-                        NotificationManager.shared.sendNotification(
-                            title: "TaskFlow",
-                            body: "タスクが更新されました"
-                        )
-                    }
-                    if resources.contains("sessions") {
-                        await self.refreshData()
-                    }
+                if resources.contains("todos") || resources.contains("sessions") {
+                    await self.refreshData()
+                }
+                if resources.contains("todos") {
+                    NotificationManager.shared.sendNotification(
+                        title: "TaskFlow",
+                        body: "タスクが更新されました"
+                    )
                 }
             }
-            await wsClient?.connect()
         }
+
+        Task { await wsClient?.connect() }
     }
 
     func syncLoginItemStatus() {
@@ -73,7 +74,6 @@ class AppState {
         }
     }
 
-    @MainActor
     func refreshData() async {
         guard let client = apiClient else { return }
         isLoading = true
@@ -96,6 +96,8 @@ class AppState {
     }
 
     func disconnect() {
-        Task { await wsClient?.disconnect() }
+        if let ws = wsClient {
+            Task { await ws.disconnect() }
+        }
     }
 }
