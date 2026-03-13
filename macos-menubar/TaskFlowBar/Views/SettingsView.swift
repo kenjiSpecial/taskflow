@@ -52,6 +52,27 @@ struct SettingsInlineView: View {
 
                 Divider()
 
+                // Server Settings
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("サーバー設定", systemImage: "server.rack")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("プロジェクトルート")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("/path/to/taskflow", text: Binding(
+                            get: { appState.serverManager.projectRoot },
+                            set: { appState.serverManager.projectRoot = $0 }
+                        ))
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body)
+                    }
+                }
+
+                Divider()
+
                 // Launch Settings
                 VStack(alignment: .leading, spacing: 8) {
                     Label("起動設定", systemImage: "power")

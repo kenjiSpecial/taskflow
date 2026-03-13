@@ -70,18 +70,36 @@ struct MainPanelView: View {
 
             // Footer
             HStack {
-                Button("Taskflowを開く") {
-                    let webURL = appState.apiURL.contains("localhost")
-                        ? "http://localhost:5173"
-                        : appState.apiURL.replacingOccurrences(
-                            of: "taskflow.kenji-draemon.workers.dev",
-                            with: "taskflow-ui.pages.dev"
-                        )
-                    if let url = URL(string: webURL) {
-                        NSWorkspace.shared.open(url)
+                if appState.serverManager.isFrontendRunning {
+                    Button("Taskflowを開く") {
+                        if let url = URL(string: "http://localhost:5173") {
+                            NSWorkspace.shared.open(url)
+                        }
                     }
+                    .buttonStyle(.borderless)
+                } else if appState.serverManager.isStarting {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.mini)
+                        Text("起動中…")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if appState.serverManager.canStart {
+                    Button {
+                        Task { await appState.serverManager.startFrontend() }
+                    } label: {
+                        Label("フロントエンドを起動", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.borderless)
+                } else {
+                    Button("Taskflowを開く") {
+                        if let url = URL(string: "http://localhost:5173") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.borderless)
                 }
-                .buttonStyle(.borderless)
 
                 Spacer()
 
@@ -97,6 +115,7 @@ struct MainPanelView: View {
         }
         .frame(width: 350, height: 500)
         .task {
+            await appState.serverManager.checkFrontend()
             if appState.isConfigured {
                 await appState.refreshData()
             }

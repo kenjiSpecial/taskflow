@@ -10,6 +10,7 @@ class AppState {
     var isLoading = false
     var lastError: String?
     var launchAtLogin = false
+    let serverManager = ServerManager()
 
     // Configuration
     var apiURL: String {
@@ -99,5 +100,6 @@ class AppState {
         if let ws = wsClient {
             Task { await ws.disconnect() }
         }
+        serverManager.stopFrontend()
     }
 }

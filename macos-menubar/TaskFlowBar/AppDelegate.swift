@@ -19,4 +19,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // ServerManager のプロセスはメインスレッドで停止
+        // AppState.serverManager にはここからアクセスできないため
+        // NotificationCenter で通知する
+        NotificationCenter.default.post(name: .appWillTerminate, object: nil)
+    }
+}
+
+extension Notification.Name {
+    static let appWillTerminate = Notification.Name("appWillTerminate")
 }

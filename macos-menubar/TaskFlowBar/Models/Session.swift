@@ -29,4 +29,11 @@ struct WorkSession: Codable, Identifiable {
 
 struct SessionListResponse: Codable {
     let sessions: [WorkSession]
+    let meta: SessionMeta?
+}
+
+struct SessionMeta: Codable {
+    let total: Int
+    let limit: Int
+    let offset: Int
 }

@@ -49,6 +49,6 @@ struct TodoMeta: Codable {
 
 struct TodayTodosResponse: Codable {
     let todos: [Todo]
-    let date: String
-    let timezone: String
+    let date: String?
+    let timezone: String?
 }
