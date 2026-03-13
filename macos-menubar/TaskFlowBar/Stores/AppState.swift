@@ -11,6 +11,7 @@ class AppState {
     var lastError: String?
     var launchAtLogin = false
     let serverManager = ServerManager()
+    let workspaceManager = WorkspaceManager()
 
     // Configuration
     var apiURL: String {
@@ -93,6 +94,7 @@ class AppState {
             self.lastError = error.localizedDescription
         }
 
+        workspaceManager.loadMappings()
         isLoading = false
     }
 

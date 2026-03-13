@@ -46,21 +46,24 @@ struct MainPanelView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        // 1. セッション（プロジェクト別）
+                        if !appState.activeSessions.isEmpty {
+                            sessionsSection
+                        }
+
+                        // 2. 今日のタスク
                         todoSection(
                             title: "今日のタスク",
                             icon: "calendar",
                             todos: appState.todayTodos
                         )
 
+                        // 3. 進行中
                         todoSection(
                             title: "進行中",
                             icon: "play.circle",
                             todos: appState.inProgressTodos
                         )
-
-                        if !appState.activeSessions.isEmpty {
-                            sessionSection
-                        }
                     }
                     .padding(16)
                 }
@@ -140,6 +143,56 @@ struct MainPanelView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Sessions (grouped by project)
+
+    private var sessionsSection: some View {
+        let grouped = groupedSessions
+        return VStack(alignment: .leading, spacing: 12) {
+            ForEach(grouped, id: \.projectName) { group in
+                ProjectSessionGroup(
+                    projectName: group.projectName,
+                    sessions: group.sessions,
+                    workspaceManager: appState.workspaceManager,
+                    onStop: { sessionId in
+                        Task {
+                            await appState.workspaceManager.stopSession(sessionId: sessionId)
+                            await appState.refreshData()
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    private var groupedSessions: [SessionGroup] {
+        let wm = appState.workspaceManager
+        var groups: [String: [WorkSession]] = [:]
+
+        for session in appState.activeSessions {
+            let key = session.project ?? "その他"
+            groups[key, default: []].append(session)
+        }
+
+        return groups.map { name, sessions in
+            // WS開いているセッションを上にソート
+            let sorted = sessions.sorted { a, b in
+                let aHasWS = wm.hasWorkspace(sessionId: a.id)
+                let bHasWS = wm.hasWorkspace(sessionId: b.id)
+                if aHasWS != bHasWS { return aHasWS }
+                return a.createdAt > b.createdAt
+            }
+            return SessionGroup(projectName: name, sessions: sorted)
+        }
+        .sorted { a, b in
+            // 「その他」を末尾に
+            if a.projectName == "その他" { return false }
+            if b.projectName == "その他" { return true }
+            return a.projectName < b.projectName
+        }
+    }
+
+    // MARK: - Todos
+
     private func todoSection(title: String, icon: String, todos: [Todo]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: icon)
@@ -158,15 +211,42 @@ struct MainPanelView: View {
             }
         }
     }
+}
 
-    private var sessionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("アクティブセッション", systemImage: "timer")
-                .font(.subheadline.bold())
-                .foregroundStyle(.secondary)
+// MARK: - Data Types
 
-            ForEach(appState.activeSessions) { session in
-                SessionRow(session: session)
+private struct SessionGroup {
+    let projectName: String
+    let sessions: [WorkSession]
+}
+
+// MARK: - Project Session Group
+
+struct ProjectSessionGroup: View {
+    let projectName: String
+    let sessions: [WorkSession]
+    let workspaceManager: WorkspaceManager
+    let onStop: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Project header
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(.blue)
+                    .frame(width: 8, height: 8)
+                Text(projectName)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+            }
+
+            // Session rows
+            ForEach(sessions) { session in
+                SessionRow(
+                    session: session,
+                    workspaceManager: workspaceManager,
+                    onStop: onStop
+                )
             }
         }
     }
@@ -215,23 +295,65 @@ struct TodoRow: View {
 
 struct SessionRow: View {
     let session: WorkSession
+    let workspaceManager: WorkspaceManager
+    let onStop: (String) -> Void
+
+    private var hasWorkspace: Bool {
+        workspaceManager.hasWorkspace(sessionId: session.id)
+    }
+
+    private var isOperating: Bool {
+        workspaceManager.isOperating(sessionId: session.id)
+    }
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "play.circle.fill")
-                .foregroundStyle(.green)
+            // WS状態アイコン
+            Image(systemName: hasWorkspace ? "terminal.fill" : "terminal")
+                .foregroundStyle(hasWorkspace ? .green : .secondary)
                 .font(.caption)
 
+            // タイトル
             Text(session.title)
                 .font(.body)
                 .lineLimit(1)
 
             Spacer()
 
+            // タスク進捗
             Text("\(session.taskCompleted)/\(session.taskTotal)")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+
+            if isOperating {
+                ProgressView()
+                    .controlSize(.mini)
+            } else {
+                // 開く/作成ボタン
+                Button {
+                    Task {
+                        await workspaceManager.openWorkspace(sessionId: session.id)
+                    }
+                } label: {
+                    Image(systemName: hasWorkspace ? "arrow.right.circle" : "plus.circle")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help(hasWorkspace ? "ワークスペースを開く" : "ワークスペースを作成")
+
+                // 完了ボタン
+                Button {
+                    onStop(session.id)
+                } label: {
+                    Image(systemName: "xmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("セッションを完了")
+            }
         }
         .padding(.vertical, 2)
+        .padding(.leading, 14)
     }
 }
