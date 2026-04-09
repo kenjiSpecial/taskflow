@@ -10,6 +10,7 @@ import {
   toolExecutions,
   pendingConfirmation,
   chatModel,
+  availableModels,
   toggleChat,
   addUserMessage,
   addAssistantMessage,
@@ -17,7 +18,7 @@ import {
   addToolExecution,
   updateToolExecution,
 } from "../stores/chat-store";
-import { bridgeChat, bridgeChatConfig, bridgeConfirm, type ViewContext } from "../lib/bridge";
+import { bridgeChat, bridgeChatConfig, bridgeConfirm, bridgeSetModel, type ViewContext } from "../lib/bridge";
 import { loadTodos } from "../stores/todo-store";
 import { loadProjects } from "../stores/project-store";
 import { loadSessions } from "../stores/session-store";
@@ -127,10 +128,13 @@ export function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.value.length, streamingContent.value]);
 
-  // Load model name on mount
+  // Load model name + available models on mount
   useEffect(() => {
     void bridgeChatConfig()
-      .then((c) => { chatModel.value = c.model; })
+      .then((c) => {
+        chatModel.value = c.model;
+        availableModels.value = c.availableModels;
+      })
       .catch(() => {});
   }, []);
 
@@ -232,9 +236,26 @@ export function ChatPanel() {
       <div class="chat-panel-header">
         <div>
           <h3>アシスタント</h3>
-          {chatModel.value && (
+          {availableModels.value.length > 0 ? (
+            <select
+              class="chat-model-select"
+              value={chatModel.value || ""}
+              onChange={(e) => {
+                const newModel = (e.target as HTMLSelectElement).value;
+                const prev = chatModel.value;
+                chatModel.value = newModel;
+                void bridgeSetModel(newModel).catch(() => {
+                  chatModel.value = prev;
+                });
+              }}
+            >
+              {availableModels.value.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          ) : chatModel.value ? (
             <span class="chat-model-label">{chatModel.value}</span>
-          )}
+          ) : null}
         </div>
         <div class="chat-panel-header-actions">
           <button

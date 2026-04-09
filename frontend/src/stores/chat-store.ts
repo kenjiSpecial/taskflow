@@ -38,6 +38,7 @@ export const error = signal<string | null>(null);
 export const toolExecutions = signal<ToolExecution[]>([]);
 export const pendingConfirmation = signal<PendingConfirmation | null>(null);
 export const chatModel = signal<string | null>(null);
+export const availableModels = signal<string[]>([]);
 
 export const hasMessages = computed(() => messages.value.length > 0);
 

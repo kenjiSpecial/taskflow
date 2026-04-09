@@ -138,8 +138,22 @@ export function bridgeChat(
   return controller;
 }
 
-export async function bridgeChatConfig(): Promise<{ model: string }> {
+export async function bridgeChatConfig(): Promise<{
+  model: string;
+  availableModels: string[];
+}> {
   const res = await fetch(`${BRIDGE_URL}/chat/config`);
+  return res.json();
+}
+
+export async function bridgeSetModel(
+  model: string,
+): Promise<{ ok: boolean; model?: string }> {
+  const res = await fetch(`${BRIDGE_URL}/chat/config`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
   return res.json();
 }
 
