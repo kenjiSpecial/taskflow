@@ -73,6 +73,39 @@ struct SettingsInlineView: View {
 
                 Divider()
 
+                // Wave OS Settings
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("波乗りOS", systemImage: "water.waves")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Journalsパス")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            TextField("~/github/obsidian/journals", text: Binding(
+                                get: { appState.waveService.journalsPath },
+                                set: { appState.waveService.journalsPath = $0 }
+                            ))
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                            Button("選択") {
+                                let panel = NSOpenPanel()
+                                panel.canChooseDirectories = true
+                                panel.canChooseFiles = false
+                                panel.allowsMultipleSelection = false
+                                if panel.runModal() == .OK, let url = panel.url {
+                                    appState.waveService.journalsPath = url.path
+                                    appState.waveService.startMonitoring()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
                 // Launch Settings
                 VStack(alignment: .leading, spacing: 8) {
                     Label("起動設定", systemImage: "power")

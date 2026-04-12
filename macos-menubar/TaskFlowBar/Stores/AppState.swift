@@ -12,6 +12,11 @@ class AppState {
     var launchAtLogin = false
     let serverManager = ServerManager()
     let workspaceManager = WorkspaceManager()
+    let waveService = WaveService()
+
+    var appMode: AppMode {
+        waveService.activeWave != nil ? .focus : .admin
+    }
 
     // Configuration
     var apiURL: String {
@@ -56,6 +61,7 @@ class AppState {
         }
 
         Task { await wsClient?.connect() }
+        waveService.startMonitoring()
     }
 
     func syncLoginItemStatus() {
@@ -95,6 +101,7 @@ class AppState {
         }
 
         workspaceManager.loadMappings()
+        waveService.loadWaves()
         isLoading = false
     }
 
@@ -103,5 +110,6 @@ class AppState {
             Task { await ws.disconnect() }
         }
         serverManager.stopFrontend()
+        waveService.stopMonitoring()
     }
 }
