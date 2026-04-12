@@ -196,6 +196,10 @@ class WaveService {
         do {
             try atomicReplace(in: path, search: searchPattern, replacement: replacement)
             loadWaves()
+            NotificationManager.shared.sendNotification(
+                title: "🌊 波\(active.number) 終了",
+                body: "\(active.taskName) — スコア:\(score) (\(minutes)分)"
+            )
         } catch {
             lastError = "波の終了に失敗: \(error.localizedDescription)"
         }
