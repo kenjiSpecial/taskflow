@@ -60,6 +60,7 @@ TaskFlowのフロントエンドをPreact SPAからNext.js (App Router)に移行
 | `/tasks/[id]` | タスク詳細・編集・紐づけ |
 | `/projects` | プロジェクト一覧 |
 | `/projects/[id]` | プロジェクト詳細（配下タスク・セッション） |
+| `/sessions` | セッション一覧 |
 | `/sessions/[id]` | セッション詳細（ログ・リンクタスク） |
 
 ## ページデザイン
@@ -195,6 +196,7 @@ frontend/
     tasks/[id]/page.tsx     # タスク詳細
     projects/page.tsx       # プロジェクト一覧
     projects/[id]/page.tsx  # プロジェクト詳細
+    sessions/page.tsx       # セッション一覧
     sessions/[id]/page.tsx  # セッション詳細
   components/
     kanban/                 # カンバンボード関連
@@ -214,17 +216,23 @@ frontend/
 
 既存のWebSocket（Durable Objects）基盤はそのまま維持。
 
+- Next.jsページはすべてCSR（`"use client"`）でWebSocket接続を管理。SSR/RSCではWS接続しない
 - WSイベント受信時にTanStack Queryの該当queryをinvalidate
 - クライアントID追跡で自身の変更によるエコーを防止（既存ロジック踏襲）
+- Cloudflare PagesからDurable Objectsへの接続はAPI経由（Workers側の`/api/realtime`エンドポイント）なのでPages側にバインディング不要
 
 ## バックエンド変更
 
-最小限の変更のみ:
+ステータス拡張とカラムリネームに伴う変更:
 
 - `src/validators/`: todoのstatusバリデーションを `backlog | todo | in_progress | review | done` に更新
 - `migrations/0008_update_todo_status.sql`: ステータスマイグレーション + `completed_at` → `done_at` リネーム
-- `src/routes/todos.ts`: ステータス関連ロジックの更新
+- `src/routes/todos.ts`: ステータス関連ロジックの更新（`completed_at` → `done_at`参照箇所含む）
+- `src/lib/`: DBヘルパーの`completed_at`参照を`done_at`に更新
 - `src/types.ts`: 型定義更新
+- `test/`: テストコード内の`completed_at`参照を`done_at`に更新
+- `macos-menubar/`: Swiftコード内の`completed_at`参照を`done_at`に更新（menubarアプリがAPIを叩いている場合）
+- `agent-tools.ts`: ステータスenumのハードコード値を新ステータスに更新
 
 ## 既存機能の維持
 
