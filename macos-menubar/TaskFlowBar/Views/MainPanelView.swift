@@ -117,6 +117,13 @@ struct MainPanelView: View {
                     .buttonStyle(.borderless)
                 }
 
+                Button("波乗りOS") {
+                    let path = appState.waveService.todayJournalPath
+                    let url = URL(fileURLWithPath: path)
+                    NSWorkspace.shared.open(url)
+                }
+                .buttonStyle(.borderless)
+
                 Spacer()
 
                 Button {
