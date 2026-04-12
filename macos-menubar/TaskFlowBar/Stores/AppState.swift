@@ -62,6 +62,12 @@ class AppState {
 
         Task { await wsClient?.connect() }
         waveService.startMonitoring()
+
+        NotificationCenter.default.addObserver(forName: .waveEndRequested, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.waveService.endWave()
+            }
+        }
     }
 
     func syncLoginItemStatus() {

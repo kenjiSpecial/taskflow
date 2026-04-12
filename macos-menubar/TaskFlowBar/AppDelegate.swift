@@ -3,6 +3,7 @@ import HotKey
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
+    private var waveHotKey: HotKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Setup notifications
@@ -18,6 +19,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
+
+        // Register wave end hotkey: Cmd+Shift+W
+        let waveHotKey = HotKey(key: .w, modifiers: [.command, .shift])
+        waveHotKey.keyDownHandler = {
+            NotificationCenter.default.post(name: .waveEndRequested, object: nil)
+        }
+        self.waveHotKey = waveHotKey
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -30,4 +38,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension Notification.Name {
     static let appWillTerminate = Notification.Name("appWillTerminate")
+    static let waveEndRequested = Notification.Name("waveEndRequested")
 }
