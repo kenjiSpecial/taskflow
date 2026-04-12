@@ -3,6 +3,8 @@ import SwiftUI
 struct MainPanelView: View {
     @Environment(AppState.self) var appState
     @State private var showSettings = false
+    @State private var showWaveStart = false
+    @State private var waveStartTaskName = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,19 +48,30 @@ struct MainPanelView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // 1. セッション（プロジェクト別）
-                        if !appState.activeSessions.isEmpty {
-                            sessionsSection
+                        // Wave section (always on top)
+                        WaveSection(
+                            wave: appState.waveService.activeWave,
+                            todayWaves: appState.waveService.todayScore,
+                            onEnd: {
+                                appState.waveService.endWave()
+                            }
+                        )
+
+                        // Sessions only in admin mode
+                        if appState.appMode == .admin {
+                            if !appState.activeSessions.isEmpty {
+                                sessionsSection
+                            }
                         }
 
-                        // 2. 今日のタスク
+                        // Today tasks (always visible)
                         todoSection(
                             title: "今日のタスク",
                             icon: "calendar",
                             todos: appState.todayTodos
                         )
 
-                        // 3. 進行中
+                        // In progress (always visible)
                         todoSection(
                             title: "進行中",
                             icon: "play.circle",
@@ -115,6 +128,10 @@ struct MainPanelView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+        }
+        .popover(isPresented: $showWaveStart) {
+            WaveStartSheet(isPresented: $showWaveStart, taskName: waveStartTaskName)
+                .environment(appState)
         }
         .frame(width: 350, height: 500)
         .task {
@@ -206,7 +223,10 @@ struct MainPanelView: View {
                     .padding(.leading, 4)
             } else {
                 ForEach(todos) { todo in
-                    TodoRow(todo: todo)
+                    TodoRow(todo: todo, onWaveStart: appState.waveService.activeWave == nil ? {
+                        waveStartTaskName = todo.title
+                        showWaveStart = true
+                    } : nil)
                 }
             }
         }
@@ -256,6 +276,7 @@ struct ProjectSessionGroup: View {
 
 struct TodoRow: View {
     let todo: Todo
+    var onWaveStart: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 8) {
@@ -273,6 +294,18 @@ struct TodoRow: View {
                 Text(formatDate(dueDate))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+            }
+
+            if onWaveStart != nil {
+                Button {
+                    onWaveStart?()
+                } label: {
+                    Image(systemName: "water.waves")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.borderless)
+                .help("この名前で波を開始")
             }
         }
         .padding(.vertical, 2)
