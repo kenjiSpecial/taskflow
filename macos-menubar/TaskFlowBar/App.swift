@@ -6,7 +6,8 @@ struct TaskFlowBarApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {
-        MenuBarExtra("TaskFlow", systemImage: "checklist") {
+        MenuBarExtra("TaskFlow",
+                     systemImage: appState.waveService.activeWave != nil ? "water.waves" : "checklist") {
             MainPanelView()
                 .environment(appState)
         }
