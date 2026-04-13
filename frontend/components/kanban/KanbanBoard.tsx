@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Todo, TodoStatus } from "@/lib/types";
 import { useTodos, useUpdateTodo } from "@/lib/hooks/useTodos";
 import { useProjects } from "@/lib/hooks/useProjects";
+import { useTags } from "@/lib/hooks/useTags";
 import { KanbanColumn } from "./KanbanColumn";
 
 const COLUMNS: TodoStatus[] = [
@@ -15,10 +16,14 @@ const COLUMNS: TodoStatus[] = [
 ];
 
 export function KanbanBoard() {
+  const [filterProjectId, setFilterProjectId] = useState<string>("");
+  const [filterTagId, setFilterTagId] = useState<string>("");
+
   const { data: todosData, isLoading: todosLoading } = useTodos({
     limit: "200",
   });
   const { data: projectsData } = useProjects();
+  const { data: tagsData } = useTags();
   const updateTodo = useUpdateTodo();
 
   const grouped = useMemo(() => {
@@ -31,13 +36,15 @@ export function KanbanBoard() {
     };
     if (todosData?.todos) {
       for (const todo of todosData.todos) {
+        if (filterProjectId && todo.project_id !== filterProjectId) continue;
+        if (filterTagId && !todo.tags?.some((t) => t.id === filterTagId)) continue;
         if (map[todo.status]) {
           map[todo.status].push(todo);
         }
       }
     }
     return map;
-  }, [todosData]);
+  }, [todosData, filterProjectId, filterTagId]);
 
   const projectMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -68,16 +75,40 @@ export function KanbanBoard() {
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto p-4 pb-6">
-      {COLUMNS.map((status) => (
-        <KanbanColumn
-          key={status}
-          status={status}
-          todos={grouped[status]}
-          projectMap={projectMap}
-          onDrop={handleDrop}
-        />
-      ))}
+    <div className="flex flex-col">
+      <div className="flex items-center gap-4 px-4 pt-4">
+        <select
+          value={filterProjectId}
+          onChange={(e) => setFilterProjectId(e.target.value)}
+          className="bg-gray-800 text-gray-200 text-sm rounded px-3 py-1.5 border border-gray-700 focus:outline-none focus:border-gray-500"
+        >
+          <option value="">すべてのプロジェクト</option>
+          {projectsData?.projects?.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <select
+          value={filterTagId}
+          onChange={(e) => setFilterTagId(e.target.value)}
+          className="bg-gray-800 text-gray-200 text-sm rounded px-3 py-1.5 border border-gray-700 focus:outline-none focus:border-gray-500"
+        >
+          <option value="">すべてのタグ</option>
+          {tagsData?.tags?.map((t: { id: string; name: string }) => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-3 overflow-x-auto p-4 pb-6">
+        {COLUMNS.map((status) => (
+          <KanbanColumn
+            key={status}
+            status={status}
+            todos={grouped[status]}
+            projectMap={projectMap}
+            onDrop={handleDrop}
+          />
+        ))}
+      </div>
     </div>
   );
 }
