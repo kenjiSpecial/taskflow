@@ -39,6 +39,7 @@ interface KanbanColumnProps {
   todos: Todo[];
   projectMap: Map<string, string>;
   onDrop: (todoId: string, newStatus: TodoStatus) => void;
+  sticky?: boolean;
 }
 
 export function KanbanColumn({
@@ -46,6 +47,7 @@ export function KanbanColumn({
   todos,
   projectMap,
   onDrop,
+  sticky,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
@@ -87,6 +89,8 @@ export function KanbanColumn({
   return (
     <div
       className={`flex-shrink-0 w-64 rounded-xl p-3 flex flex-col max-h-[calc(100vh-8rem)] transition-all duration-150 ${
+        sticky ? "sticky right-0 z-10" : ""
+      } ${
         isDragOver
           ? `bg-[#1e1e38] ring-2 ${STATUS_HIGHLIGHT[status]}`
           : "bg-[#1a1a2e]"

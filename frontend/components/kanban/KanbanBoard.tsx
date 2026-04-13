@@ -363,6 +363,7 @@ export function KanbanBoard() {
                     todos={pg[status]}
                     projectMap={projectMap}
                     onDrop={handleDrop}
+                    sticky={status === "done"}
                   />
                 ))}
                 {showMiniDone && <MiniDoneDropZone onDrop={handleDropDone} />}
@@ -384,6 +385,7 @@ export function KanbanBoard() {
               todos={grouped[status]}
               projectMap={projectMap}
               onDrop={handleDrop}
+              sticky={status === "done"}
             />
           ))}
           {showMiniDone && <MiniDoneDropZone onDrop={handleDropDone} />}
