@@ -18,6 +18,8 @@ export interface RealtimeInvalidationEvent {
   project_id?: string | null;
   entity_id?: string;
   occurred_at: string;
+  old_status?: string;
+  new_status?: string;
 }
 
 export const realtimeResourceSchema = z.enum([
@@ -38,6 +40,8 @@ export const realtimeInvalidationEventSchema = z.object({
   project_id: z.string().nullable().optional(),
   entity_id: z.string().min(1).optional(),
   occurred_at: z.string().min(1),
+  old_status: z.string().optional(),
+  new_status: z.string().optional(),
 });
 
 interface PublishResponse {
