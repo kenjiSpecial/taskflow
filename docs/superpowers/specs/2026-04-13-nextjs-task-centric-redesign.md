@@ -22,7 +22,7 @@ TaskFlowのフロントエンドをPreact SPAからNext.js (App Router)に移行
 | レイヤー | 技術 |
 |---------|------|
 | フレームワーク | Next.js (App Router) |
-| デプロイ | Cloudflare Pages (`@cloudflare/next-on-pages`) |
+| デプロイ | Cloudflare Workers (`@opennextjs/cloudflare`) ※`@cloudflare/next-on-pages`は非推奨 |
 | UIライブラリ | React 19 |
 | データフェッチ | TanStack Query |
 | スタイリング | Tailwind CSS |
