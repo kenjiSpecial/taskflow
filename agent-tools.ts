@@ -31,6 +31,9 @@ export const agentTools: Tool[] = [
     parameters: Type.Object({
       title: Type.String({ description: "タスクのタイトル" }),
       description: Type.Optional(Type.String({ description: "タスクの詳細説明" })),
+      status: Type.Optional(
+        Type.String({ description: "backlog | todo | ready_for_code | in_progress | review | done（デフォルト: backlog）" }),
+      ),
       priority: Type.Optional(
         Type.String({ description: "high | medium | low（デフォルト: medium）" }),
       ),
@@ -43,7 +46,7 @@ export const agentTools: Tool[] = [
   },
   {
     name: "update_todo",
-    description: "既存タスクを更新。ステータスはbacklog→todo→in_progress→review→doneの順に進行。",
+    description: "既存タスクを更新。ステータスはbacklog→todo→ready_for_code→in_progress→review→doneの順に進行。ready_for_code=AIコーディングエージェント着手可能。",
     parameters: Type.Object({
       id: Type.String({ description: "タスクID" }),
       title: Type.Optional(Type.String()),
@@ -242,9 +245,10 @@ export const toolApiMap: Record<string, ToolApiMapping> = {
   create_todo: {
     method: "POST",
     path: () => "/api/todos",
-    body: ({ title, description, priority, project_id, due_date, parent_id }) => ({
+    body: ({ title, description, status, priority, project_id, due_date, parent_id }) => ({
       title,
       ...(description && { description }),
+      ...(status && { status }),
       ...(priority && { priority }),
       ...(project_id && { project_id }),
       ...(due_date && { due_date }),

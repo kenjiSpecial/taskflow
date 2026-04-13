@@ -126,10 +126,65 @@ GET /api/projects
 GET /api/projects/:id
 ```
 
+### プロジェクト作成
+
+```bash
+POST /api/projects
+Content-Type: application/json
+
+{
+  "name": "プロジェクト名",
+  "description": "説明（任意）",
+  "color": "#ff6b6b（任意）"
+}
+```
+
+### プロジェクト更新
+
+```bash
+PATCH /api/projects/:id
+```
+
 ### セッション一覧
 
 ```bash
 GET /api/sessions?status=active&project_id=xxx
+```
+
+### セッション作成
+
+```bash
+POST /api/sessions
+Content-Type: application/json
+
+{
+  "title": "セッションタイトル",
+  "description": "説明（任意）",
+  "project_id": "プロジェクトID（任意）"
+}
+```
+
+### セッション更新
+
+```bash
+PATCH /api/sessions/:id
+```
+
+### セッションタスク一覧
+
+```bash
+GET /api/sessions/:id/tasks
+```
+
+### タスクをセッションにリンク
+
+```bash
+POST /api/sessions/:id/tasks
+Content-Type: application/json
+
+{
+  "todo_id": "タスクID"
+}
 ```
 
 ### セッションログ追加
@@ -146,10 +201,40 @@ Content-Type: application/json
 
 source: `human`（デフォルト）| `ai`
 
+### タグ一覧
+
+```bash
+GET /api/tags
+```
+
+### タグ作成
+
+```bash
+POST /api/tags
+Content-Type: application/json
+
+{
+  "name": "タグ名",
+  "color": "#ff6b6b（任意）"
+}
+```
+
 ## ステータス
 
-- タスク: `backlog | todo | ready_for_code | in_progress | review | done`
-- セッション: `active | paused | done`
+### タスク（6段階カンバンフロー）
+
+`backlog → todo → ready_for_code → in_progress → review → done`
+
+- `backlog`: 未整理・いつかやる
+- `todo`: 次やる
+- `ready_for_code`: 仕様確定済み、AIコーディングエージェントが着手可能
+- `in_progress`: 作業中
+- `review`: レビュー待ち
+- `done`: 完了
+
+### セッション
+
+`active | paused | done`
 
 ## 使用例
 
