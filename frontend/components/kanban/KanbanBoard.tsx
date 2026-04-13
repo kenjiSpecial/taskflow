@@ -18,6 +18,7 @@ const COLUMNS: TodoStatus[] = [
 export function KanbanBoard() {
   const [filterProjectId, setFilterProjectId] = useState<string>("");
   const [filterTagId, setFilterTagId] = useState<string>("");
+  const [showDone, setShowDone] = useState(false);
 
   const { data: todosData, isLoading: todosLoading } = useTodos({
     limit: "200",
@@ -110,9 +111,18 @@ export function KanbanBoard() {
             <option key={t.id} value={t.id}>{t.name}</option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showDone}
+            onChange={(e) => setShowDone(e.target.checked)}
+            className="accent-green-500"
+          />
+          Done を表示
+        </label>
       </div>
       <div className="flex gap-3 overflow-x-auto p-4 pb-6">
-        {COLUMNS.map((status) => (
+        {COLUMNS.filter((s) => s !== "done" || showDone).map((status) => (
           <KanbanColumn
             key={status}
             status={status}
