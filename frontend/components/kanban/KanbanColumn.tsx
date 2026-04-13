@@ -10,7 +10,7 @@ const STATUS_LABEL: Record<TodoStatus, string> = {
   ready_for_code: "READY FOR CODE",
   in_progress: "IN PROGRESS",
   review: "REVIEW",
-  ready_for_publish: "公開待ち",
+  ready_for_publish: "PENDING PUBLISH",
   done: "DONE",
 };
 

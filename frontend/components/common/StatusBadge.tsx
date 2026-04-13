@@ -24,7 +24,7 @@ const STATUS_CONFIG: Record<
     dotColor: "bg-purple-400",
   },
   ready_for_publish: {
-    label: "公開待ち",
+    label: "Pending Publish",
     color: "text-orange-400",
     dotColor: "bg-orange-400",
   },
