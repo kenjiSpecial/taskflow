@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import type { Todo, TodoStatus } from "@/lib/types";
+import type { Todo, TodoStatus, Project } from "@/lib/types";
 import { useTodos, useUpdateTodo } from "@/lib/hooks/useTodos";
 import { useProjects } from "@/lib/hooks/useProjects";
 import { useTags } from "@/lib/hooks/useTags";
@@ -17,42 +17,109 @@ const COLUMNS: TodoStatus[] = [
 
 const STORAGE_KEY = "taskflow-kanban-filters";
 
+type ViewMode = "unified" | "by-project";
+
 function loadFilters(): {
   projectId: string;
   tagId: string;
   showDone: boolean;
+  viewMode: ViewMode;
 } {
-  if (typeof window === "undefined") return { projectId: "", tagId: "", showDone: false };
+  if (typeof window === "undefined")
+    return { projectId: "", tagId: "", showDone: false, viewMode: "unified" };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { projectId: "", tagId: "", showDone: false };
+  return { projectId: "", tagId: "", showDone: false, viewMode: "unified" };
+}
+
+// プロジェクト別にtodoをグルーピング
+function groupByProject(
+  todos: Todo[],
+  projects: Project[],
+  filterTagId: string,
+  projectTagMap: Map<string, string[]>,
+): { project: Project; grouped: Record<TodoStatus, Todo[]> }[] {
+  const result: { project: Project; grouped: Record<TodoStatus, Todo[]> }[] = [];
+
+  for (const project of projects) {
+    if (filterTagId && !projectTagMap.get(project.id)?.includes(filterTagId)) continue;
+
+    const grouped: Record<TodoStatus, Todo[]> = {
+      backlog: [],
+      todo: [],
+      in_progress: [],
+      review: [],
+      done: [],
+    };
+    let hasAny = false;
+    for (const todo of todos) {
+      if (todo.project_id !== project.id) continue;
+      if (grouped[todo.status]) {
+        grouped[todo.status].push(todo);
+        hasAny = true;
+      }
+    }
+    if (hasAny) {
+      result.push({ project, grouped });
+    }
+  }
+
+  // プロジェクト未設定のタスク
+  const noProject: Record<TodoStatus, Todo[]> = {
+    backlog: [],
+    todo: [],
+    in_progress: [],
+    review: [],
+    done: [],
+  };
+  let hasNoProject = false;
+  for (const todo of todos) {
+    if (!todo.project_id && noProject[todo.status]) {
+      if (filterTagId) continue; // タグフィルタ時はプロジェクト未設定を除外
+      noProject[todo.status].push(todo);
+      hasNoProject = true;
+    }
+  }
+  if (hasNoProject) {
+    result.push({
+      project: { id: "", name: "プロジェクト未設定" } as Project,
+      grouped: noProject,
+    });
+  }
+
+  return result;
 }
 
 export function KanbanBoard() {
   const [filterProjectId, setFilterProjectId] = useState<string>("");
   const [filterTagId, setFilterTagId] = useState<string>("");
   const [showDone, setShowDone] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("unified");
   const [hydrated, setHydrated] = useState(false);
 
-  // localStorage読み込み（初回のみ）
   useEffect(() => {
     const saved = loadFilters();
     setFilterProjectId(saved.projectId);
     setFilterTagId(saved.tagId);
     setShowDone(saved.showDone);
+    setViewMode(saved.viewMode ?? "unified");
     setHydrated(true);
   }, []);
 
-  // localStorage書き込み
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ projectId: filterProjectId, tagId: filterTagId, showDone }),
+      JSON.stringify({
+        projectId: filterProjectId,
+        tagId: filterTagId,
+        showDone,
+        viewMode,
+      }),
     );
-  }, [filterProjectId, filterTagId, showDone, hydrated]);
+  }, [filterProjectId, filterTagId, showDone, viewMode, hydrated]);
 
   const { data: todosData, isLoading: todosLoading } = useTodos({
     limit: "200",
@@ -66,16 +133,14 @@ export function KanbanBoard() {
     if (projectsData?.projects) {
       for (const p of projectsData.projects) {
         if (p.tags?.length) {
-          m.set(
-            p.id,
-            p.tags.map((t) => t.id),
-          );
+          m.set(p.id, p.tags.map((t) => t.id));
         }
       }
     }
     return m;
   }, [projectsData]);
 
+  // 一括表示用
   const grouped = useMemo(() => {
     const map: Record<TodoStatus, Todo[]> = {
       backlog: [],
@@ -100,6 +165,18 @@ export function KanbanBoard() {
     }
     return map;
   }, [todosData, filterProjectId, filterTagId, projectTagMap]);
+
+  // プロジェクト別表示用
+  const byProject = useMemo(() => {
+    if (filterProjectId || !projectsData?.projects || !todosData?.todos)
+      return [];
+    return groupByProject(
+      todosData.todos,
+      projectsData.projects,
+      filterTagId,
+      projectTagMap,
+    );
+  }, [todosData, projectsData, filterProjectId, filterTagId, projectTagMap]);
 
   const projectMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -131,6 +208,9 @@ export function KanbanBoard() {
       </div>
     );
   }
+
+  const isAllProjects = !filterProjectId;
+  const activeColumns = COLUMNS.filter((s) => s !== "done" || showDone);
 
   return (
     <div className="flex flex-col">
@@ -168,18 +248,79 @@ export function KanbanBoard() {
           />
           Done を表示
         </label>
+        {isAllProjects && (
+          <div className="flex items-center gap-1 ml-auto bg-gray-800 rounded-md border border-gray-700 p-0.5">
+            <button
+              onClick={() => setViewMode("unified")}
+              className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                viewMode === "unified"
+                  ? "bg-gray-600 text-white"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              一括
+            </button>
+            <button
+              onClick={() => setViewMode("by-project")}
+              className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                viewMode === "by-project"
+                  ? "bg-gray-600 text-white"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              プロジェクト別
+            </button>
+          </div>
+        )}
       </div>
-      <div className="flex gap-3 overflow-x-auto p-4 pb-6">
-        {COLUMNS.filter((s) => s !== "done" || showDone).map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            todos={grouped[status]}
-            projectMap={projectMap}
-            onDrop={handleDrop}
-          />
-        ))}
-      </div>
+
+      {isAllProjects && viewMode === "by-project" ? (
+        <div className="flex flex-col gap-6 p-4 pb-6">
+          {byProject.map(({ project, grouped: pg }) => (
+            <div key={project.id || "_none"}>
+              <div className="flex items-center gap-2 mb-2 px-1">
+                {project.color && (
+                  <span
+                    className="inline-block w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: project.color }}
+                  />
+                )}
+                <h3 className="text-sm font-semibold text-gray-300">
+                  {project.name}
+                </h3>
+              </div>
+              <div className="flex gap-3 overflow-x-auto">
+                {activeColumns.map((status) => (
+                  <KanbanColumn
+                    key={`${project.id}-${status}`}
+                    status={status}
+                    todos={pg[status]}
+                    projectMap={projectMap}
+                    onDrop={handleDrop}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          {byProject.length === 0 && (
+            <div className="text-gray-500 text-sm text-center py-8">
+              タスクがありません
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto p-4 pb-6">
+          {activeColumns.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              todos={grouped[status]}
+              projectMap={projectMap}
+              onDrop={handleDrop}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
