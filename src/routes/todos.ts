@@ -95,7 +95,7 @@ app.get("/today", async (c) => {
   const rows = await c.env.DB.prepare(
     `SELECT * FROM todos
      WHERE deleted_at IS NULL
-       AND status != 'completed'
+       AND status != 'done'
        AND (due_date <= ? OR due_date IS NULL)
      ORDER BY
        CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END,
@@ -194,7 +194,7 @@ app.post("/", async (c) => {
   const timestamp = now();
 
   const todo = await c.env.DB.prepare(
-    `INSERT INTO todos (id, title, description, status, priority, due_date, project, project_id, parent_id, sort_order, completed_at, created_at, updated_at)
+    `INSERT INTO todos (id, title, description, status, priority, due_date, project, project_id, parent_id, sort_order, done_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
   ).bind(
@@ -208,7 +208,7 @@ app.post("/", async (c) => {
     data.project_id ?? null,
     data.parent_id ?? null,
     data.sort_order,
-    data.status === "completed" ? timestamp : null,
+    data.status === "done" ? timestamp : null,
     timestamp,
     timestamp,
   ).first<TodoRow>();
@@ -276,12 +276,12 @@ app.patch("/:id", async (c) => {
     }
   }
 
-  // completed_at の自動管理
-  let completedAt = existing.completed_at;
-  if (data.status === "completed" && existing.status !== "completed") {
-    completedAt = timestamp;
-  } else if (data.status && data.status !== "completed") {
-    completedAt = null;
+  // done_at の自動管理
+  let doneAt = existing.done_at;
+  if (data.status === "done" && existing.status !== "done") {
+    doneAt = timestamp;
+  } else if (data.status && data.status !== "done") {
+    doneAt = null;
   }
 
   const sets: string[] = [];
@@ -295,8 +295,8 @@ app.patch("/:id", async (c) => {
     }
   }
 
-  sets.push("completed_at = ?", "updated_at = ?");
-  params.push(completedAt, timestamp, id);
+  sets.push("done_at = ?", "updated_at = ?");
+  params.push(doneAt, timestamp, id);
 
   const todo = await c.env.DB.prepare(
     `UPDATE todos SET ${sets.join(", ")} WHERE id = ? RETURNING *`,

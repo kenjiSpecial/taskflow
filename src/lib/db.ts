@@ -21,7 +21,7 @@ export interface TodoRow {
   project_id: string | null;
   parent_id: string | null;
   sort_order: number;
-  completed_at: string | null;
+  done_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

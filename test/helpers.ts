@@ -23,14 +23,14 @@ export async function applyMigrations() {
     "id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))))," +
     "title TEXT NOT NULL CHECK(length(title) <= 200)," +
     "description TEXT CHECK(length(description) <= 2000)," +
-    "status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed'))," +
+    "status TEXT NOT NULL DEFAULT 'backlog' CHECK(status IN ('backlog', 'todo', 'in_progress', 'review', 'done'))," +
     "priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('high', 'medium', 'low'))," +
     "due_date TEXT," +
     "project TEXT," +
     "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL," +
     "parent_id TEXT REFERENCES todos(id) ON DELETE SET NULL," +
     "sort_order INTEGER NOT NULL DEFAULT 0," +
-    "completed_at TEXT," +
+    "done_at TEXT," +
     "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
     "updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))," +
     "deleted_at TEXT);"

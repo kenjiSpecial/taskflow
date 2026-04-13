@@ -4,14 +4,14 @@ struct Todo: Codable, Identifiable {
     let id: String
     let title: String
     let description: String?
-    let status: String  // pending | in_progress | completed
+    let status: String  // backlog | todo | in_progress | review | done
     let priority: String  // high | medium | low
     let dueDate: String?
     let projectId: String?
     let parentId: String?
     let project: String?
     let sortOrder: Int?
-    let completedAt: String?
+    let doneAt: String?
     let deletedAt: String?
     let createdAt: String
     let updatedAt: String
@@ -22,15 +22,17 @@ struct Todo: Codable, Identifiable {
         case projectId = "project_id"
         case parentId = "parent_id"
         case sortOrder = "sort_order"
-        case completedAt = "completed_at"
+        case doneAt = "done_at"
         case deletedAt = "deleted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
 
-    var isPending: Bool { status == "pending" }
+    var isBacklog: Bool { status == "backlog" }
+    var isTodo: Bool { status == "todo" }
     var isInProgress: Bool { status == "in_progress" }
-    var isCompleted: Bool { status == "completed" }
+    var isReview: Bool { status == "review" }
+    var isDone: Bool { status == "done" }
     var isHighPriority: Bool { priority == "high" }
     var isMediumPriority: Bool { priority == "medium" }
     var isLowPriority: Bool { priority == "low" }

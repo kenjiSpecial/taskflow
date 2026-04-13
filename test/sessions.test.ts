@@ -357,7 +357,7 @@ describe("Session Tasks (Linking)", () => {
     const s = await sRes.json() as { session: { id: string } };
     const t1Res = await createTodo({ title: "未完了タスク" });
     const t1 = await t1Res.json() as { todo: { id: string } };
-    const t2Res = await createTodo({ title: "完了タスク", status: "completed" });
+    const t2Res = await createTodo({ title: "完了タスク", status: "done" });
     const t2 = await t2Res.json() as { todo: { id: string } };
 
     await linkTask(s.session.id, t1.todo.id);

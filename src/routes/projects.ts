@@ -46,7 +46,7 @@ app.get("/", async (c) => {
      FROM projects p
      LEFT JOIN (
        SELECT project_id, COUNT(*) as todo_count
-       FROM todos WHERE deleted_at IS NULL AND status != 'completed'
+       FROM todos WHERE deleted_at IS NULL AND status != 'done'
        GROUP BY project_id
      ) tc ON tc.project_id = p.id
      LEFT JOIN (
@@ -226,7 +226,7 @@ app.get("/:id", async (c) => {
      FROM projects p
      LEFT JOIN (
        SELECT project_id, COUNT(*) as todo_count
-       FROM todos WHERE deleted_at IS NULL AND status != 'completed'
+       FROM todos WHERE deleted_at IS NULL AND status != 'done'
        GROUP BY project_id
      ) tc ON tc.project_id = p.id
      LEFT JOIN (

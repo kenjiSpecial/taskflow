@@ -49,7 +49,7 @@ app.get("/", async (c) => {
      LEFT JOIN (
        SELECT st.session_id,
          COUNT(*) as task_total,
-         SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) as task_completed
+         SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as task_completed
        FROM session_tasks st
        JOIN todos t ON st.todo_id = t.id AND t.deleted_at IS NULL
        GROUP BY st.session_id

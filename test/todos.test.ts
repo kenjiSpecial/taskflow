@@ -25,7 +25,7 @@ describe("Todos CRUD", () => {
     expect(res.status).toBe(201);
     const data = await res.json() as { todo: { id: string; title: string; status: string; priority: string } };
     expect(data.todo.title).toBe("テストタスク");
-    expect(data.todo.status).toBe("pending");
+    expect(data.todo.status).toBe("backlog");
     expect(data.todo.priority).toBe("medium");
   });
 
@@ -49,20 +49,71 @@ describe("Todos CRUD", () => {
     expect(data.todo.children).toEqual([]);
   });
 
-  it("TODO更新", async () => {
+  it("TODO更新（done）", async () => {
     const createRes = await createTodo({ title: "更新前" });
     const created = await createRes.json() as { todo: { id: string } };
 
     const res = await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ title: "更新後", status: "completed" }),
+      body: JSON.stringify({ title: "更新後", status: "done" }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json() as { todo: { title: string; status: string; completed_at: string | null } };
+    const data = await res.json() as { todo: { title: string; status: string; done_at: string | null } };
     expect(data.todo.title).toBe("更新後");
-    expect(data.todo.status).toBe("completed");
-    expect(data.todo.completed_at).not.toBeNull();
+    expect(data.todo.status).toBe("done");
+    expect(data.todo.done_at).not.toBeNull();
+  });
+
+  it("TODO更新（todo）", async () => {
+    const createRes = await createTodo({ title: "todoステータステスト" });
+    const created = await createRes.json() as { todo: { id: string } };
+
+    const res = await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "todo" }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { todo: { status: string } };
+    expect(data.todo.status).toBe("todo");
+  });
+
+  it("TODO更新（review）", async () => {
+    const createRes = await createTodo({ title: "reviewステータステスト" });
+    const created = await createRes.json() as { todo: { id: string } };
+
+    const res = await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "review" }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { todo: { status: string } };
+    expect(data.todo.status).toBe("review");
+  });
+
+  it("done→backlogに戻すとdone_atがクリアされる", async () => {
+    const createRes = await createTodo({ title: "done戻しテスト" });
+    const created = await createRes.json() as { todo: { id: string } };
+
+    // まずdoneにする
+    await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "done" }),
+    });
+
+    // backlogに戻す
+    const res = await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "backlog" }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { todo: { status: string; done_at: string | null } };
+    expect(data.todo.status).toBe("backlog");
+    expect(data.todo.done_at).toBeNull();
   });
 
   it("TODO論理削除", async () => {
@@ -215,6 +266,16 @@ describe("Todos CRUD", () => {
     const data = await res.json() as { todos: { status: string }[] };
     for (const todo of data.todos) {
       expect(todo.status).toBe("in_progress");
+    }
+  });
+
+  it("フィルタ（backlogステータス）", async () => {
+    await createTodo({ title: "backlogフィルタ用" });
+    const res = await SELF.fetch("http://localhost/api/todos?status=backlog", { headers });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { todos: { status: string }[] };
+    for (const todo of data.todos) {
+      expect(todo.status).toBe("backlog");
     }
   });
 });
