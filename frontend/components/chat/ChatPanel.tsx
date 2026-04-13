@@ -278,7 +278,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="w-80 h-full border-l border-gray-800 bg-gray-950 flex flex-col shrink-0">
+    <div className="w-96 h-full border-l border-gray-800 bg-gray-950 flex flex-col shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
         <div>
