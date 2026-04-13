@@ -314,6 +314,9 @@ app.patch("/:id", async (c) => {
       origin_client_id: getOriginClientId(c),
       project_id: todo?.project_id ?? existing.project_id ?? null,
       entity_id: id,
+      ...(data.status !== undefined && data.status !== existing.status
+        ? { old_status: existing.status, new_status: data.status }
+        : {}),
     }),
   );
 
