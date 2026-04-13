@@ -92,12 +92,63 @@ function groupByProject(
   return result;
 }
 
+// Done非表示時にドラッグ中のみ表示するミニドロップゾーン
+function MiniDoneDropZone({ onDrop }: { onDrop: (todoId: string) => void }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [dragCounter, setDragCounter] = useState(0);
+
+  return (
+    <div
+      className={`flex-shrink-0 w-20 rounded-xl flex flex-col items-center justify-center transition-all duration-150 border-2 border-dashed ${
+        isDragOver
+          ? "border-green-400 bg-green-900/30"
+          : "border-green-700/50 bg-[#1a1a2e]/50"
+      }`}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setDragCounter((c) => { if (c === 0) setIsDragOver(true); return c + 1; });
+      }}
+      onDragLeave={() => {
+        setDragCounter((c) => { const n = c - 1; if (n <= 0) { setIsDragOver(false); return 0; } return n; });
+      }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        setDragCounter(0);
+        const todoId = e.dataTransfer.getData("text/plain");
+        if (todoId) onDrop(todoId);
+      }}
+    >
+      <span className={`text-xs font-bold tracking-wider ${isDragOver ? "text-green-300" : "text-green-600"}`}>
+        DONE
+      </span>
+    </div>
+  );
+}
+
 export function KanbanBoard() {
   const [filterProjectId, setFilterProjectId] = useState<string>("");
   const [filterTagId, setFilterTagId] = useState<string>("");
   const [showDone, setShowDone] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("unified");
   const [hydrated, setHydrated] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // ドラッグ検知（window level）
+  useEffect(() => {
+    const onDragStart = () => setIsDragging(true);
+    const onDragEnd = () => setIsDragging(false);
+    const onDrop = () => setIsDragging(false);
+    window.addEventListener("dragstart", onDragStart);
+    window.addEventListener("dragend", onDragEnd);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragstart", onDragStart);
+      window.removeEventListener("dragend", onDragEnd);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
 
   useEffect(() => {
     const saved = loadFilters();
@@ -201,6 +252,13 @@ export function KanbanBoard() {
     [updateTodo],
   );
 
+  const handleDropDone = useCallback(
+    (todoId: string) => handleDrop(todoId, "done"),
+    [handleDrop],
+  );
+
+  const showMiniDone = !showDone && isDragging;
+
   if (todosLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -299,6 +357,7 @@ export function KanbanBoard() {
                     onDrop={handleDrop}
                   />
                 ))}
+                {showMiniDone && <MiniDoneDropZone onDrop={handleDropDone} />}
               </div>
             </div>
           ))}
@@ -319,6 +378,7 @@ export function KanbanBoard() {
               onDrop={handleDrop}
             />
           ))}
+          {showMiniDone && <MiniDoneDropZone onDrop={handleDropDone} />}
         </div>
       )}
     </div>
