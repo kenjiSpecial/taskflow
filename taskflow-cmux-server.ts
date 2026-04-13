@@ -40,8 +40,9 @@ const CERT_FILE = join(CONFIG_DIR, "cert.pem");
 const KEY_FILE = join(CONFIG_DIR, "key.pem");
 
 const DEFAULT_API_URL = "https://taskflow.kenji-draemon.workers.dev";
-const DEFAULT_CHAT_MODEL = "google/gemini-3-flash-preview";
+const DEFAULT_CHAT_MODEL = "minimax/minimax-m2.7";
 const AVAILABLE_MODELS = [
+  "minimax/minimax-m2.7",
   "google/gemini-3-flash-preview",
   "anthropic/claude-sonnet-4.6",
   "moonshotai/kimi-k2.5",
@@ -244,39 +245,69 @@ interface ChatRequest {
 // ─── System Prompt Builder ───────────────────────────────────────────────────
 
 function buildSystemPrompt(viewContext?: ViewContext): string {
-  let prompt = `あなたはTaskflowのタスク管理アシスタントです。
-ユーザーの自然言語での指示に基づいて、タスク・プロジェクト・セッション・タグの操作を行います。
+  let prompt = `あなたはTaskFlowのタスク管理アシスタントです。日本語で簡潔に応答します。
 
-基本ルール:
-- 操作を行う前に、必要に応じてツールで現状を確認してください
-- 削除操作は慎重に行ってください
-- 結果は簡潔に日本語で報告してください
-- 複数の操作が必要な場合は順番に実行してください
+## できること
+タスク・プロジェクト・セッション・タグの作成・更新・削除、タスクログの記録、進捗確認。
 
-タスク作成のルール:
-- タスク作成を依頼されたら、まず以下を確認する（ユーザーが「タスクのみ作成」「紐付け不要」等と明示した場合は省略可）:
-  1. プロジェクト紐付け: list_projects で既存プロジェクトを確認し、タスク内容に最も関連性の高いプロジェクトを提案する
-  2. セッション紐付け: 新しい作業セッションを作成してタスクをリンクするか確認する
-- 確認は簡潔に1回のメッセージにまとめる（例: 「プロジェクト『X』に紐付けますか？作業セッションも作成しますか？」）
-- ユーザーが「いいえ」「なし」等と答えた場合は紐付けなしで作成する
-- セッション作成時はタスクと同じプロジェクトに紐付け、link_task_to_session でタスクをリンクする`;
+## ステータスフロー
+タスクは5段階で進行: backlog → todo → in_progress → review → done
+- backlog: 未整理・いつかやる
+- todo: 次やる
+- in_progress: 作業中
+- review: レビュー待ち
+- done: 完了
+
+## 基本ルール
+- 操作前にツールで現状を確認する
+- 削除は慎重に（確認ダイアログが出る）
+- 結果は簡潔に報告
+- 複数操作は順次実行
+- 重要な操作の後は add_todo_log (source=ai) で記録を残す（例: ステータス変更理由、作業メモ）
+
+## タスク作成ルール
+タスク作成を依頼されたら（「タスクのみ」「紐付け不要」と明示された場合は省略）:
+1. list_projects で既存プロジェクトを確認し、最も関連性の高いプロジェクトを提案
+2. 作業セッション作成・リンクの要否を確認
+- 確認は1回のメッセージにまとめる
+- 不要と言われたら紐付けなしで作成
+- セッション作成時は同プロジェクトに紐付け、link_task_to_session でリンク`;
 
   if (viewContext) {
-    prompt += "\n\n現在のユーザーの画面状態:";
-    prompt += `\n- ページ: ${viewContext.currentPage}`;
+    prompt += "\n\n## 現在のページ";
+    prompt += `\nユーザーは「${viewContext.currentPage}」ページを表示中。`;
     if (viewContext.activeProjectId) {
-      prompt += `\n- プロジェクト: ${viewContext.activeProjectName || "不明"} (id: ${viewContext.activeProjectId})`;
+      prompt += `\nプロジェクト: ${viewContext.activeProjectName || "不明"} (id: ${viewContext.activeProjectId})`;
     }
     if (viewContext.activeFilters) {
       if (viewContext.activeFilters.status) {
-        prompt += `\n- ステータスフィルタ: ${viewContext.activeFilters.status}`;
+        prompt += `\nステータスフィルタ: ${viewContext.activeFilters.status}`;
       }
       if (viewContext.activeFilters.tags?.length) {
-        prompt += `\n- タグフィルタ: ${viewContext.activeFilters.tags.join(", ")}`;
+        prompt += `\nタグフィルタ: ${viewContext.activeFilters.tags.join(", ")}`;
       }
     }
-    prompt +=
-      "\n\nタスク作成時、特にプロジェクト指定がなければ現在表示中のプロジェクトを第一候補として提案してください。";
+
+    // ページ別の提案指示
+    const page = viewContext.currentPage;
+    if (page === "kanban" || page === "/") {
+      prompt += `\n\nこのページでは: タスク作成、ステータス一括変更、フィルタの相談、今日のタスク確認ができます。`;
+    } else if (page.startsWith("task-detail") || page.startsWith("/tasks/")) {
+      prompt += `\n\nこのページでは: ステータス変更、ログ追加、子タスク作成、セッション紐付け、詳細編集ができます。`;
+      prompt += `\nタスクの詳細を知るには get_todo を使ってください。`;
+    } else if (page.startsWith("project-detail") || page.startsWith("/projects/")) {
+      prompt += `\n\nこのページでは: タスク追加、セッション管理、進捗確認ができます。`;
+    } else if (page.startsWith("session-detail") || page.startsWith("/sessions/")) {
+      prompt += `\n\nこのページでは: タスクリンク、ログ追加、セッションステータス変更ができます。`;
+    }
+
+    prompt += `\nタスク作成時、特にプロジェクト指定がなければ現在表示中のプロジェクトを第一候補として提案してください。`;
+
+    prompt += `\n\n## 自動挨拶モード
+ユーザーのメッセージが空（自動挨拶リクエスト）の場合:
+- 現在のページに応じて「ここでは○○ができます」と簡潔に提案する（2-3行）
+- ツールは呼ばない
+- 質問で終える（例: 「何かお手伝いできますか？」）`;
   }
 
   return prompt;
@@ -361,7 +392,8 @@ async function handleChat(
             const s = piStream(model, context, {
               apiKey: config.openrouterApiKey,
               signal: abortController.signal,
-              maxTokens: 4096,
+              maxTokens: 16384,
+              reasoningEffort: "low",
             });
 
             for await (const event of s) {
@@ -533,6 +565,7 @@ try {
 const server = Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
+  idleTimeout: 120,
   ...(tlsConfig ? { tls: tlsConfig } : {}),
 
   async fetch(req) {

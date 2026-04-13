@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { MessageBubble } from "./MessageBubble";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -10,7 +11,9 @@ import {
   bridgeChatConfig,
   bridgeConfirm,
   bridgeSetModel,
+  type ViewContext,
 } from "@/lib/bridge";
+import { useChatPersistence } from "@/lib/hooks/useChat";
 import { todoKeys } from "@/lib/hooks/useTodos";
 import { projectKeys } from "@/lib/hooks/useProjects";
 import { sessionKeys } from "@/lib/hooks/useSessions";
@@ -63,8 +66,29 @@ function ToolExecutionIndicator({ te }: { te: ToolExecution }) {
 
 // --- Main Component ---
 
+function buildViewContext(pathname: string): ViewContext {
+  if (pathname.startsWith("/tasks/")) {
+    return { currentPage: `task-detail:${pathname.split("/")[2]}` };
+  }
+  if (pathname.startsWith("/projects/")) {
+    return { currentPage: "project-detail", activeProjectId: pathname.split("/")[2] };
+  }
+  if (pathname.startsWith("/sessions/")) {
+    return { currentPage: "session-detail" };
+  }
+  return { currentPage: "kanban" };
+}
+
 export function ChatPanel() {
   const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const {
+    restoredMessages,
+    restoredToolExecutions,
+    isRestoring,
+    saveMessage,
+    newConversation,
+  } = useChatPersistence();
 
   // State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -84,6 +108,7 @@ export function ChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamingContentRef = useRef("");
+  const lastGreetedPathRef = useRef<string | null>(null);
 
   // Load chat config on mount
   useEffect(() => {
@@ -94,6 +119,59 @@ export function ChatPanel() {
       })
       .catch(() => {});
   }, []);
+
+  // Restore messages from DB
+  useEffect(() => {
+    if (!isRestoring && restoredMessages.length > 0) {
+      setMessages(restoredMessages);
+      setToolExecutions(restoredToolExecutions);
+    }
+  }, [isRestoring, restoredMessages, restoredToolExecutions]);
+
+  // Auto-greet on page change (empty conversation only)
+  useEffect(() => {
+    if (isRestoring || isStreaming) return;
+    if (messages.length > 0) return;
+    if (lastGreetedPathRef.current === pathname) return;
+    if (!isChatOpen) return;
+
+    lastGreetedPathRef.current = pathname;
+    const viewContext = buildViewContext(pathname);
+
+    setIsStreaming(true);
+    setStreamingContent("");
+    streamingContentRef.current = "";
+
+    const ctrl = bridgeChat("", {
+      onToken(content) {
+        streamingContentRef.current += content;
+        setStreamingContent(streamingContentRef.current);
+      },
+      onToolCall() {},
+      onToolResult() {},
+      onConfirm() {},
+      onDone(data) {
+        if (data.model) setChatModel(data.model);
+        const finalContent = streamingContentRef.current;
+        if (finalContent) {
+          setMessages((prev) => [
+            ...prev,
+            { id: crypto.randomUUID(), role: "assistant", content: finalContent },
+          ]);
+        }
+        setStreamingContent("");
+        streamingContentRef.current = "";
+        setIsStreaming(false);
+      },
+      onError() {
+        setStreamingContent("");
+        streamingContentRef.current = "";
+        setIsStreaming(false);
+      },
+    }, { context: viewContext });
+
+    abortRef.current = ctrl;
+  }, [pathname, isRestoring, isStreaming, messages.length, isChatOpen]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -134,6 +212,9 @@ export function ChatPanel() {
     setError(null);
     setToolExecutions([]);
 
+    // Save user message to DB
+    saveMessage({ role: "user", content: text });
+
     const ctrl = bridgeChat(text, {
       onToken(content) {
         streamingContentRef.current += content;
@@ -149,6 +230,12 @@ export function ChatPanel() {
             status: "executing",
           },
         ]);
+        // Save tool call to DB
+        saveMessage({
+          role: "assistant",
+          tool_calls: JSON.stringify([{ tool_name: data.tool_name, args: data.args }]),
+          tool_call_id: data.tool_call_id,
+        });
       },
       onToolResult(data) {
         if (data.cancelled) {
@@ -168,6 +255,13 @@ export function ChatPanel() {
             ),
           );
           invalidateAll();
+          // Save tool result to DB
+          saveMessage({
+            role: "tool",
+            tool_call_id: data.tool_call_id,
+            tool_name: data.tool_name,
+            content: JSON.stringify(data.result),
+          });
         }
       },
       onConfirm(data) {
@@ -185,6 +279,8 @@ export function ChatPanel() {
             content: finalContent,
           };
           setMessages((prev) => [...prev, assistantMsg]);
+          // Save assistant message to DB
+          saveMessage({ role: "assistant", content: finalContent });
         }
         setStreamingContent("");
         streamingContentRef.current = "";
@@ -200,15 +296,17 @@ export function ChatPanel() {
             content: finalContent,
           };
           setMessages((prev) => [...prev, assistantMsg]);
+          // Save partial assistant message to DB
+          saveMessage({ role: "assistant", content: finalContent });
         }
         setStreamingContent("");
         streamingContentRef.current = "";
         setIsStreaming(false);
       },
-    });
+    }, { context: buildViewContext(pathname) });
 
     abortRef.current = ctrl;
-  }, [inputText, isStreaming, invalidateAll]);
+  }, [inputText, isStreaming, invalidateAll, pathname]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -247,13 +345,15 @@ export function ChatPanel() {
   );
 
   const handleNewConversation = useCallback(() => {
+    newConversation();
+    lastGreetedPathRef.current = null;
     setMessages([]);
     setStreamingContent("");
     streamingContentRef.current = "";
     setError(null);
     setToolExecutions([]);
     setPendingConfirmation(null);
-  }, []);
+  }, [newConversation]);
 
   const handleModelChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {

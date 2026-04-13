@@ -153,6 +153,35 @@ export type UpdateSessionInput = Partial<
   Pick<WorkSession, "title" | "description" | "project" | "project_id" | "status">
 >;
 
+// --- Chat ---
+
+export interface ChatConversation {
+  id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface ChatMessageRecord {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string | null;
+  tool_calls: string | null;
+  tool_call_id: string | null;
+  tool_name: string | null;
+  created_at: string;
+}
+
+export interface CreateChatMessageInput {
+  role: "user" | "assistant" | "system" | "tool";
+  content?: string | null;
+  tool_calls?: string | null;
+  tool_call_id?: string | null;
+  tool_name?: string | null;
+}
+
 // --- Shared ---
 
 export interface ReorderItem {

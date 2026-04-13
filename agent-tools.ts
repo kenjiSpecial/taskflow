@@ -43,7 +43,7 @@ export const agentTools: Tool[] = [
   },
   {
     name: "update_todo",
-    description: "既存タスクを更新。ステータス変更、タイトル変更等。",
+    description: "既存タスクを更新。ステータスはbacklog→todo→in_progress→review→doneの順に進行。",
     parameters: Type.Object({
       id: Type.String({ description: "タスクID" }),
       title: Type.Optional(Type.String()),
@@ -184,7 +184,7 @@ export const agentTools: Tool[] = [
   },
   {
     name: "add_todo_log",
-    description: "タスクにログ（作業メモ）を追加。Markdown対応。エージェント経由の場合source=aiを指定。",
+    description: "タスクにログ（作業メモ）を追加。Markdown対応。操作後の記録に積極的に使う。エージェント経由は必ずsource=aiを指定。",
     parameters: Type.Object({
       todo_id: Type.String({ description: "タスクID" }),
       content: Type.String({ description: "ログ内容（Markdown対応）" }),

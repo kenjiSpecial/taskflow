@@ -19,6 +19,9 @@ import type {
   SessionTask,
   ReorderItem,
   TodoLog,
+  ChatConversation,
+  ChatMessageRecord,
+  CreateChatMessageInput,
 } from "./types";
 
 // --- API Client ---
@@ -315,4 +318,33 @@ export async function unlinkTodoTag(
   tagId: string
 ): Promise<void> {
   await request(`/api/todos/${todoId}/tags/${tagId}`, { method: "DELETE" });
+}
+
+// --- Chat API ---
+
+export async function createConversation(
+  title?: string
+): Promise<{ conversation: ChatConversation }> {
+  return request("/api/chat/conversations", {
+    method: "POST",
+    body: JSON.stringify(title ? { title } : {}),
+  });
+}
+
+export async function fetchChatMessages(
+  conversationId: string
+): Promise<{ messages: ChatMessageRecord[]; meta: { total: number } }> {
+  return request(
+    `/api/chat/conversations/${conversationId}/messages?limit=200&order=asc`
+  );
+}
+
+export async function addChatMessage(
+  conversationId: string,
+  data: CreateChatMessageInput
+): Promise<{ message: ChatMessageRecord }> {
+  return request(`/api/chat/conversations/${conversationId}/messages`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
