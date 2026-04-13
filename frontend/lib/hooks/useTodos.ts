@@ -38,7 +38,32 @@ export function useUpdateTodo() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTodoInput }) =>
       api.updateTodo(id, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: todoKeys.all }),
+    onMutate: async ({ id, input }) => {
+      await qc.cancelQueries({ queryKey: todoKeys.all });
+      const previousData = qc.getQueriesData({ queryKey: todoKeys.all });
+      // Optimistically update all matching caches
+      qc.setQueriesData<{ todos: import("../types").Todo[] }>(
+        { queryKey: todoKeys.all },
+        (old) => {
+          if (!old?.todos) return old;
+          return {
+            ...old,
+            todos: old.todos.map((t) =>
+              t.id === id ? { ...t, ...input } : t,
+            ),
+          };
+        },
+      );
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          qc.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: todoKeys.all }),
   });
 }
 

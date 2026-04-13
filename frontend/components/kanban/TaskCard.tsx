@@ -21,6 +21,12 @@ export function TaskCard({ todo, projectName }: TaskCardProps) {
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.dataTransfer.setData("text/plain", todo.id);
     e.dataTransfer.effectAllowed = "move";
+    const el = e.currentTarget;
+    requestAnimationFrame(() => el.classList.add("opacity-40"));
+  }
+
+  function handleDragEnd(e: React.DragEvent<HTMLDivElement>) {
+    e.currentTarget.classList.remove("opacity-40");
   }
 
   return (
@@ -28,7 +34,8 @@ export function TaskCard({ todo, projectName }: TaskCardProps) {
       <div
         draggable
         onDragStart={handleDragStart}
-        className={`bg-[#252540] rounded-lg p-3 border-l-4 ${STATUS_BORDER_COLOR[todo.status]} cursor-grab active:cursor-grabbing hover:bg-[#2d2d50] transition-colors`}
+        onDragEnd={handleDragEnd}
+        className={`bg-[#252540] rounded-lg p-3 border-l-4 ${STATUS_BORDER_COLOR[todo.status]} cursor-grab active:cursor-grabbing hover:bg-[#2d2d50] transition-all`}
       >
         <p className="text-sm text-gray-100 font-medium leading-snug">
           {todo.title}

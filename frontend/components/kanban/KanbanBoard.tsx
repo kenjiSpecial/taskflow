@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import type { Todo, TodoStatus } from "@/lib/types";
 import { useTodos, useUpdateTodo } from "@/lib/hooks/useTodos";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -15,10 +15,44 @@ const COLUMNS: TodoStatus[] = [
   "done",
 ];
 
+const STORAGE_KEY = "taskflow-kanban-filters";
+
+function loadFilters(): {
+  projectId: string;
+  tagId: string;
+  showDone: boolean;
+} {
+  if (typeof window === "undefined") return { projectId: "", tagId: "", showDone: false };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { projectId: "", tagId: "", showDone: false };
+}
+
 export function KanbanBoard() {
   const [filterProjectId, setFilterProjectId] = useState<string>("");
   const [filterTagId, setFilterTagId] = useState<string>("");
   const [showDone, setShowDone] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // localStorage読み込み（初回のみ）
+  useEffect(() => {
+    const saved = loadFilters();
+    setFilterProjectId(saved.projectId);
+    setFilterTagId(saved.tagId);
+    setShowDone(saved.showDone);
+    setHydrated(true);
+  }, []);
+
+  // localStorage書き込み
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ projectId: filterProjectId, tagId: filterTagId, showDone }),
+    );
+  }, [filterProjectId, filterTagId, showDone, hydrated]);
 
   const { data: todosData, isLoading: todosLoading } = useTodos({
     limit: "200",
@@ -27,13 +61,15 @@ export function KanbanBoard() {
   const { data: tagsData } = useTags();
   const updateTodo = useUpdateTodo();
 
-  // プロジェクトID → タグIDリストのマップ（タグフィルタ用）
   const projectTagMap = useMemo(() => {
     const m = new Map<string, string[]>();
     if (projectsData?.projects) {
       for (const p of projectsData.projects) {
         if (p.tags?.length) {
-          m.set(p.id, p.tags.map((t) => t.id));
+          m.set(
+            p.id,
+            p.tags.map((t) => t.id),
+          );
         }
       }
     }
@@ -51,7 +87,12 @@ export function KanbanBoard() {
     if (todosData?.todos) {
       for (const todo of todosData.todos) {
         if (filterProjectId && todo.project_id !== filterProjectId) continue;
-        if (filterTagId && (!todo.project_id || !projectTagMap.get(todo.project_id)?.includes(filterTagId))) continue;
+        if (
+          filterTagId &&
+          (!todo.project_id ||
+            !projectTagMap.get(todo.project_id)?.includes(filterTagId))
+        )
+          continue;
         if (map[todo.status]) {
           map[todo.status].push(todo);
         }
@@ -70,15 +111,18 @@ export function KanbanBoard() {
     return m;
   }, [projectsData]);
 
-  function handleDrop(todoId: string, newStatus: TodoStatus) {
-    updateTodo.mutate({
-      id: todoId,
-      input: {
-        status: newStatus,
-        done_at: newStatus === "done" ? new Date().toISOString() : null,
-      },
-    });
-  }
+  const handleDrop = useCallback(
+    (todoId: string, newStatus: TodoStatus) => {
+      updateTodo.mutate({
+        id: todoId,
+        input: {
+          status: newStatus,
+          done_at: newStatus === "done" ? new Date().toISOString() : null,
+        },
+      });
+    },
+    [updateTodo],
+  );
 
   if (todosLoading) {
     return (
@@ -98,7 +142,9 @@ export function KanbanBoard() {
         >
           <option value="">すべてのプロジェクト</option>
           {projectsData?.projects?.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
           ))}
         </select>
         <select
@@ -108,7 +154,9 @@ export function KanbanBoard() {
         >
           <option value="">すべてのタグ</option>
           {tagsData?.tags?.map((t: { id: string; name: string }) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
           ))}
         </select>
         <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
