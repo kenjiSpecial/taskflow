@@ -124,7 +124,15 @@ export interface SessionLog {
   id: string;
   session_id: string;
   content: string;
-  source: "ui" | "cli";
+  source: "human" | "ai";
+  created_at: string;
+}
+
+export interface TodoLog {
+  id: string;
+  todo_id: string;
+  content: string;
+  source: "human" | "ai";
   created_at: string;
 }
 

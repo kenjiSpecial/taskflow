@@ -20,11 +20,11 @@ export default function TaskPage({
 
   return (
     <div className="flex gap-6 p-6">
-      <div className="flex-[2]">
-        <TaskDetail todo={todo} />
-      </div>
-      <div className="flex-1 min-w-[200px]">
+      <div className="w-56 shrink-0">
         <TaskSidebar todo={todo} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <TaskDetail todo={todo} />
       </div>
     </div>
   );

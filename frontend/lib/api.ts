@@ -18,6 +18,7 @@ import type {
   SessionLogListResponse,
   SessionTask,
   ReorderItem,
+  TodoLog,
 } from "./types";
 
 // --- API Client ---
@@ -123,6 +124,26 @@ export async function reorderTodos(items: ReorderItem[]): Promise<void> {
   await request("/api/todos/reorder", {
     method: "PATCH",
     body: JSON.stringify({ items }),
+  });
+}
+
+// --- Todo Logs API ---
+
+export async function fetchTodoLogs(
+  todoId: string,
+  params?: Record<string, string>
+): Promise<{ logs: TodoLog[]; meta: { limit: number; offset: number } }> {
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  return request(`/api/todos/${todoId}/logs${query}`);
+}
+
+export async function addTodoLog(
+  todoId: string,
+  data: { content: string; source?: "human" | "ai" }
+): Promise<{ log: TodoLog }> {
+  return request(`/api/todos/${todoId}/logs`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 

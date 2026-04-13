@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import type { TodoRow, WorkSessionRow, TagRow } from "../lib/db";
+import type { TodoRow, TodoLogRow, WorkSessionRow, TagRow } from "../lib/db";
 import { now, projectExists, tagExists } from "../lib/db";
-import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema } from "../validators/todo";
+import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema, createTodoLogSchema, listTodoLogsQuery } from "../validators/todo";
 import { tagLinkSchema } from "../validators/tag";
 import { getOriginClientId, publishRealtimeInvalidation } from "../realtime/publish";
 
@@ -467,6 +467,75 @@ app.delete("/:id", async (c) => {
   );
 
   return c.json({ success: true });
+});
+
+// GET /api/todos/:id/logs - タスクログ一覧
+app.get("/:id/logs", async (c) => {
+  const id = c.req.param("id");
+  const parsed = listTodoLogsQuery.safeParse(c.req.query());
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid query parameters", details: parsed.error.flatten() } }, 400);
+  }
+
+  const todo = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first();
+
+  if (!todo) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
+  }
+
+  const { order, limit, offset } = parsed.data;
+  const rows = await c.env.DB.prepare(
+    `SELECT * FROM todo_logs WHERE todo_id = ? ORDER BY created_at ${order} LIMIT ? OFFSET ?`,
+  ).bind(id, limit, offset).all<TodoLogRow>();
+
+  return c.json({ logs: rows.results, meta: { limit, offset } });
+});
+
+// POST /api/todos/:id/logs - タスクログ追加
+app.post("/:id/logs", async (c) => {
+  const id = c.req.param("id");
+
+  const todo = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE id = ? AND deleted_at IS NULL",
+  ).bind(id).first();
+
+  if (!todo) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Todo not found" } }, 404);
+  }
+
+  const body = await c.req.json();
+  const parsed = createTodoLogSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Invalid request body", details: parsed.error.flatten() } }, 400);
+  }
+
+  const data = parsed.data;
+  const logId = crypto.randomUUID().replace(/-/g, "");
+  const timestamp = now();
+
+  const [log] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO todo_logs (id, todo_id, content, source, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING *`,
+    ).bind(logId, id, data.content, data.source, timestamp),
+    c.env.DB.prepare(
+      "UPDATE todos SET updated_at = ? WHERE id = ?",
+    ).bind(timestamp, id),
+  ]);
+
+  c.executionCtx.waitUntil(
+    publishRealtimeInvalidation(c.env, {
+      resources: ["todos"],
+      reason: "todo_log.created",
+      origin_client_id: getOriginClientId(c),
+      entity_id: id,
+    }),
+  );
+
+  return c.json({ log: (log as D1Result<TodoLogRow>).results[0] }, 201);
 });
 
 export default app;

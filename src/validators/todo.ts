@@ -22,6 +22,17 @@ export const reorderTodosSchema = z.object({
   })).min(1).max(100),
 });
 
+export const createTodoLogSchema = z.object({
+  content: z.string().min(1).max(10000),
+  source: z.enum(["human", "ai"]).default("human"),
+});
+
+export const listTodoLogsQuery = z.object({
+  order: z.enum(["asc", "desc"]).default("asc"),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
 export const listTodosQuery = z.object({
   status: z.enum(["backlog", "todo", "in_progress", "review", "done"]).optional(),
   priority: z.enum(["high", "medium", "low"]).optional(),

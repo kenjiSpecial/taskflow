@@ -22,7 +22,7 @@ export const listSessionsQuery = z.object({
 
 export const createSessionLogSchema = z.object({
   content: z.string().min(1).max(10000),
-  source: z.enum(["ui", "cli"]).default("ui"),
+  source: z.enum(["human", "ai"]).default("human"),
 });
 
 export const linkSessionTaskSchema = z.object({

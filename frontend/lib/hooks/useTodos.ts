@@ -8,6 +8,7 @@ export const todoKeys = {
   list: (params?: Record<string, unknown>) =>
     [...todoKeys.all, "list", params] as const,
   detail: (id: string) => [...todoKeys.all, "detail", id] as const,
+  logs: (id: string) => [...todoKeys.all, "logs", id] as const,
 };
 
 export function useTodos(params?: Record<string, string>) {
@@ -54,5 +55,24 @@ export function useReorderTodos() {
   return useMutation({
     mutationFn: (items: ReorderItem[]) => api.reorderTodos(items),
     onSuccess: () => qc.invalidateQueries({ queryKey: todoKeys.all }),
+  });
+}
+
+export function useTodoLogs(todoId: string) {
+  return useQuery({
+    queryKey: todoKeys.logs(todoId),
+    queryFn: () => api.fetchTodoLogs(todoId),
+  });
+}
+
+export function useAddTodoLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ todoId, content, source }: { todoId: string; content: string; source?: "human" | "ai" }) =>
+      api.addTodoLog(todoId, { content, source }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: todoKeys.logs(vars.todoId) });
+      qc.invalidateQueries({ queryKey: todoKeys.all });
+    },
   });
 }

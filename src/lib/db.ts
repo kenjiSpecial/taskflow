@@ -43,7 +43,15 @@ export interface SessionLogRow {
   id: string;
   session_id: string;
   content: string;
-  source: string;
+  source: "human" | "ai";
+  created_at: string;
+}
+
+export interface TodoLogRow {
+  id: string;
+  todo_id: string;
+  content: string;
+  source: "human" | "ai";
   created_at: string;
 }
 

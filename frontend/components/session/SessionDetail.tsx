@@ -98,12 +98,12 @@ export function SessionDetail({ session }: { session: WorkSession }) {
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
                       className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        log.source === "cli"
-                          ? "bg-blue-500/20 text-blue-400"
-                          : "bg-purple-500/20 text-purple-400"
+                        log.source === "ai"
+                          ? "bg-purple-900/40 text-purple-300"
+                          : "bg-gray-700 text-gray-300"
                       }`}
                     >
-                      {log.source}
+                      {log.source === "ai" ? "AI" : "Human"}
                     </span>
                     <span className="text-[11px] text-gray-500">
                       {formatDateTime(log.created_at)}
