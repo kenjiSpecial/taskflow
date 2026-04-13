@@ -91,6 +91,7 @@ export type UpdateTodoInput = Partial<
     | "project_id"
     | "parent_id"
     | "sort_order"
+    | "done_at"
   >
 >;
 

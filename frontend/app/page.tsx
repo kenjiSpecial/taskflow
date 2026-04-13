@@ -1,3 +1,5 @@
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+
 export default function Home() {
-  return <h1>TaskFlow</h1>;
+  return <KanbanBoard />;
 }
