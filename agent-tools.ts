@@ -9,7 +9,7 @@ export const agentTools: Tool[] = [
       "タスク一覧を取得。status, project_id, priority, tag等でフィルタ可能。",
     parameters: Type.Object({
       status: Type.Optional(
-        Type.String({ description: "backlog | todo | in_progress | review | done" }),
+        Type.String({ description: "backlog | todo | ready_for_code | in_progress | review | done" }),
       ),
       project_id: Type.Optional(Type.String({ description: "プロジェクトID" })),
       priority: Type.Optional(
@@ -49,7 +49,7 @@ export const agentTools: Tool[] = [
       title: Type.Optional(Type.String()),
       description: Type.Optional(Type.String()),
       status: Type.Optional(
-        Type.String({ description: "backlog | todo | in_progress | review | done" }),
+        Type.String({ description: "backlog | todo | ready_for_code | in_progress | review | done" }),
       ),
       priority: Type.Optional(Type.String({ description: "high | medium | low" })),
       project_id: Type.Optional(Type.String()),

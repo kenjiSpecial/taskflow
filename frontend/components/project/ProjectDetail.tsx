@@ -22,6 +22,7 @@ const STATUS_ORDER: TodoStatus[] = [
 const STATUS_LABELS: Record<TodoStatus, string> = {
   backlog: "Backlog",
   todo: "Todo",
+  ready_for_code: "Ready for Code",
   in_progress: "In Progress",
   review: "Review",
   done: "Done",

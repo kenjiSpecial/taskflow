@@ -7,6 +7,7 @@ import { TaskCard } from "./TaskCard";
 const STATUS_LABEL: Record<TodoStatus, string> = {
   backlog: "BACKLOG",
   todo: "TODO",
+  ready_for_code: "READY FOR CODE",
   in_progress: "IN PROGRESS",
   review: "REVIEW",
   done: "DONE",
@@ -15,6 +16,7 @@ const STATUS_LABEL: Record<TodoStatus, string> = {
 const STATUS_BADGE_COLOR: Record<TodoStatus, string> = {
   backlog: "bg-gray-600 text-gray-300",
   todo: "bg-blue-900 text-blue-300",
+  ready_for_code: "bg-cyan-900 text-cyan-300",
   in_progress: "bg-amber-900 text-amber-300",
   review: "bg-purple-900 text-purple-300",
   done: "bg-green-900 text-green-300",
@@ -23,6 +25,7 @@ const STATUS_BADGE_COLOR: Record<TodoStatus, string> = {
 const STATUS_HIGHLIGHT: Record<TodoStatus, string> = {
   backlog: "ring-gray-400/50 bg-gray-800/30",
   todo: "ring-blue-400/50 bg-blue-900/20",
+  ready_for_code: "ring-cyan-400/50 bg-cyan-900/20",
   in_progress: "ring-amber-400/50 bg-amber-900/20",
   review: "ring-purple-400/50 bg-purple-900/20",
   done: "ring-green-400/50 bg-green-900/20",

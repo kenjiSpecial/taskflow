@@ -7,6 +7,7 @@ import { PriorityBadge } from "@/components/common/PriorityBadge";
 const STATUS_BORDER_COLOR: Record<TodoStatus, string> = {
   backlog: "border-l-gray-400",
   todo: "border-l-blue-400",
+  ready_for_code: "border-l-cyan-400",
   in_progress: "border-l-amber-400",
   review: "border-l-purple-400",
   done: "border-l-green-400",

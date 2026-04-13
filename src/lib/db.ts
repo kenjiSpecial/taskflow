@@ -14,7 +14,7 @@ export interface TodoRow {
   id: string;
   title: string;
   description: string | null;
-  status: "backlog" | "todo" | "in_progress" | "review" | "done";
+  status: "backlog" | "todo" | "ready_for_code" | "in_progress" | "review" | "done";
   priority: "high" | "medium" | "low";
   due_date: string | null;
   project: string | null;

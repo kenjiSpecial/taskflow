@@ -33,7 +33,7 @@ GET /api/todos?status=backlog&priority=high&project_id=xxx&sort=due_date&order=a
 ```
 
 パラメータ:
-- `status`: backlog | todo | in_progress | review | done
+- `status`: backlog | todo | ready_for_code | in_progress | review | done
 - `priority`: high | medium | low
 - `project_id`: プロジェクトID
 - `sort`: due_date | priority | created_at | sort_order (default: sort_order)
@@ -148,7 +148,7 @@ source: `human`（デフォルト）| `ai`
 
 ## ステータス
 
-- タスク: `backlog | todo | in_progress | review | done`
+- タスク: `backlog | todo | ready_for_code | in_progress | review | done`
 - セッション: `active | paused | done`
 
 ## 使用例

@@ -10,6 +10,7 @@ import { KanbanColumn } from "./KanbanColumn";
 const COLUMNS: TodoStatus[] = [
   "backlog",
   "todo",
+  "ready_for_code",
   "in_progress",
   "review",
   "done",
@@ -49,6 +50,7 @@ function groupByProject(
     const grouped: Record<TodoStatus, Todo[]> = {
       backlog: [],
       todo: [],
+      ready_for_code: [],
       in_progress: [],
       review: [],
       done: [],
@@ -70,6 +72,7 @@ function groupByProject(
   const noProject: Record<TodoStatus, Todo[]> = {
     backlog: [],
     todo: [],
+    ready_for_code: [],
     in_progress: [],
     review: [],
     done: [],
@@ -196,6 +199,7 @@ export function KanbanBoard() {
     const map: Record<TodoStatus, Todo[]> = {
       backlog: [],
       todo: [],
+      ready_for_code: [],
       in_progress: [],
       review: [],
       done: [],

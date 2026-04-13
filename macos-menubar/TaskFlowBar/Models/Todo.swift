@@ -4,7 +4,7 @@ struct Todo: Codable, Identifiable {
     let id: String
     let title: String
     let description: String?
-    let status: String  // backlog | todo | in_progress | review | done
+    let status: String  // backlog | todo | ready_for_code | in_progress | review | done
     let priority: String  // high | medium | low
     let dueDate: String?
     let projectId: String?

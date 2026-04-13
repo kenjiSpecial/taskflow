@@ -39,7 +39,7 @@ export type UpdateProjectInput = Partial<
 
 // --- Todos ---
 
-export type TodoStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
+export type TodoStatus = "backlog" | "todo" | "ready_for_code" | "in_progress" | "review" | "done";
 
 export interface Todo {
   id: string;

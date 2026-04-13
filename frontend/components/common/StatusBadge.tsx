@@ -8,6 +8,11 @@ const STATUS_CONFIG: Record<
 > = {
   backlog: { label: "Backlog", color: "text-gray-400", dotColor: "bg-gray-400" },
   todo: { label: "Todo", color: "text-blue-400", dotColor: "bg-blue-400" },
+  ready_for_code: {
+    label: "Ready for Code",
+    color: "text-cyan-400",
+    dotColor: "bg-cyan-400",
+  },
   in_progress: {
     label: "In Progress",
     color: "text-amber-400",

@@ -251,9 +251,10 @@ function buildSystemPrompt(viewContext?: ViewContext): string {
 タスク・プロジェクト・セッション・タグの作成・更新・削除、タスクログの記録、進捗確認。
 
 ## ステータスフロー
-タスクは5段階で進行: backlog → todo → in_progress → review → done
+タスクは6段階で進行: backlog → todo → ready_for_code → in_progress → review → done
 - backlog: 未整理・いつかやる
 - todo: 次やる
+- ready_for_code: 仕様確定済み、AIコーディングエージェントが着手可能
 - in_progress: 作業中
 - review: レビュー待ち
 - done: 完了

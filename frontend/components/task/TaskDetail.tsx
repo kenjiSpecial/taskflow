@@ -19,6 +19,7 @@ marked.use({ breaks: true, async: false });
 const STATUSES: { value: TodoStatus; label: string }[] = [
   { value: "backlog", label: "Backlog" },
   { value: "todo", label: "Todo" },
+  { value: "ready_for_code", label: "Ready for Code" },
   { value: "in_progress", label: "In Progress" },
   { value: "review", label: "Review" },
   { value: "done", label: "Done" },
