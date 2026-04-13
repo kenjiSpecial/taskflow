@@ -20,7 +20,7 @@ export default function TaskPage({
 
   return (
     <div className="flex gap-6 p-6">
-      <div className="w-56 shrink-0">
+      <div className="w-72 shrink-0">
         <TaskSidebar todo={todo} />
       </div>
       <div className="flex-1 min-w-0">

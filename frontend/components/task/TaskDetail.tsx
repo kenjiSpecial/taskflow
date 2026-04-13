@@ -328,13 +328,13 @@ export function TaskDetail({ todo }: { todo: Todo }) {
         )}
 
         {/* Log input */}
-        <div className="flex gap-2">
+        <div className="relative">
           <textarea
             value={logInput}
             onChange={(e) => setLogInput(e.target.value)}
             placeholder="ログを追加（Markdown対応）..."
-            rows={2}
-            className="flex-1 bg-gray-800 text-gray-100 text-sm rounded-md px-3 py-2 resize-none border border-gray-700 focus:outline-none focus:border-gray-500"
+            rows={3}
+            className="w-full bg-gray-800 text-gray-100 text-sm rounded-md px-3 py-2 pb-10 resize-none border border-gray-700 focus:outline-none focus:border-gray-500"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
@@ -342,15 +342,17 @@ export function TaskDetail({ todo }: { todo: Todo }) {
               }
             }}
           />
-          <button
-            onClick={handleAddLog}
-            disabled={!logInput.trim() || addLog.isPending}
-            className="self-end px-3 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-md disabled:opacity-30 transition-colors"
-          >
-            追加
-          </button>
+          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+            <span className="text-[11px] text-gray-600">Cmd+Enter</span>
+            <button
+              onClick={handleAddLog}
+              disabled={!logInput.trim() || addLog.isPending}
+              className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded disabled:opacity-30 transition-colors"
+            >
+              追加
+            </button>
+          </div>
         </div>
-        <p className="text-[11px] text-gray-600 mt-1">Cmd+Enter で送信</p>
       </div>
     </div>
   );
