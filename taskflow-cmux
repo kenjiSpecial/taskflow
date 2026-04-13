@@ -574,11 +574,11 @@ cmd_sync() {
     echo "$mappings" | jq -r '.mappings[] | "\(.session_id)\t\(.workspace_id)"' | while IFS=$'\t' read -r sid wid; do
       # workspace存在チェック
       local ws_exists
-      ws_exists=$(echo "$workspace_ids" | grep -c "^${wid}$" || echo 0)
+      ws_exists=$(echo "$workspace_ids" | { grep -c "^${wid}$" || true; })
 
       # API側のセッション状態チェック
       local in_api
-      in_api=$(echo "$api_session_ids" | grep -c "^${sid}$" || echo 0)
+      in_api=$(echo "$api_session_ids" | { grep -c "^${sid}$" || true; })
 
       if [[ "$ws_exists" -eq 0 ]]; then
         # workspace消失 → セッションをdoneに

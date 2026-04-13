@@ -65,22 +65,35 @@ function findWorkspaceId(sessionId: string): string | null {
 }
 
 async function focusWorkspace(workspaceId: string): Promise<boolean> {
+  // Ignore SIGPIPE to prevent cmux CLI from being killed when the socket closes early
+  console.log(`[focus] trying workspace=${workspaceId}`);
+  // Strip CMUX_WORKSPACE_ID to avoid stale workspace reference
+  const env = { ...process.env };
+  delete env.CMUX_WORKSPACE_ID;
+  delete env.CMUX_SURFACE_ID;
+  delete env.CMUX_TAB_ID;
+  delete env.CMUX_PANEL_ID;
   const proc = Bun.spawn(
     ["cmux", "select-workspace", "--workspace", workspaceId],
-    { stdout: "pipe", stderr: "pipe" },
+    { stdout: "pipe", stderr: "pipe", env },
   );
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
   const exitCode = await proc.exited;
+  console.log(`[focus] exit=${exitCode} stdout="${stdout.trim()}" stderr="${stderr.trim()}"`);
   return exitCode === 0;
 }
 
 async function runCmuxStart(
   sessionId: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const proc = Bun.spawn([cmuxScript, "start", sessionId], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: { ...process.env },
-  });
+  // Ignore SIGPIPE to prevent cmux CLI from being killed when the socket closes early
+  const proc = Bun.spawn(
+    ["bash", "-c", `trap '' PIPE; '${cmuxScript}' start '${sessionId}'`],
+    { stdout: "pipe", stderr: "pipe", env: { ...process.env } },
+  );
 
   const timeout = setTimeout(() => {
     proc.kill();
