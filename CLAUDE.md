@@ -24,7 +24,7 @@ npm test             # vitest run
 npm run typecheck    # tsc --noEmit
 
 # フロントエンド
-cd frontend && npm run dev      # next dev (port 5000)
+cd frontend && npm run dev      # next dev (port 5173)
 cd frontend && npm run build    # next build
 cd frontend && npm run preview  # opennextjs-cloudflare preview
 cd frontend && npm run deploy   # opennextjs-cloudflare deploy
