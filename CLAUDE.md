@@ -67,5 +67,5 @@ test/                 # Vitest テスト
 ## 環境変数
 
 - `.dev.vars` → ローカルバックエンド（`API_TOKEN`）
-- `frontend/.env` → ローカルフロントエンド（`VITE_API_TOKEN`）
+- `frontend/.env.local` → ローカルフロントエンド（`NEXT_PUBLIC_API_TOKEN`）
 - 本番はCF Secrets / GitHub Secrets で管理
