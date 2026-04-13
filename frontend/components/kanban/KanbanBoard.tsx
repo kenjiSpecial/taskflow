@@ -26,6 +26,19 @@ export function KanbanBoard() {
   const { data: tagsData } = useTags();
   const updateTodo = useUpdateTodo();
 
+  // プロジェクトID → タグIDリストのマップ（タグフィルタ用）
+  const projectTagMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    if (projectsData?.projects) {
+      for (const p of projectsData.projects) {
+        if (p.tags?.length) {
+          m.set(p.id, p.tags.map((t) => t.id));
+        }
+      }
+    }
+    return m;
+  }, [projectsData]);
+
   const grouped = useMemo(() => {
     const map: Record<TodoStatus, Todo[]> = {
       backlog: [],
@@ -37,14 +50,14 @@ export function KanbanBoard() {
     if (todosData?.todos) {
       for (const todo of todosData.todos) {
         if (filterProjectId && todo.project_id !== filterProjectId) continue;
-        if (filterTagId && !todo.tags?.some((t) => t.id === filterTagId)) continue;
+        if (filterTagId && (!todo.project_id || !projectTagMap.get(todo.project_id)?.includes(filterTagId))) continue;
         if (map[todo.status]) {
           map[todo.status].push(todo);
         }
       }
     }
     return map;
-  }, [todosData, filterProjectId, filterTagId]);
+  }, [todosData, filterProjectId, filterTagId, projectTagMap]);
 
   const projectMap = useMemo(() => {
     const m = new Map<string, string>();
