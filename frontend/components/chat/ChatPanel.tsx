@@ -52,8 +52,10 @@ function ToolExecutionIndicator({ te }: { te: ToolExecution }) {
           : `${te.tool_name} 完了`;
 
   return (
-    <div className={`chat-tool-indicator chat-tool-${te.status}`}>
-      {te.status === "executing" && <span className="chat-spinner" />}
+    <div className="flex items-center gap-2 text-xs text-gray-400 px-3 py-1">
+      {te.status === "executing" && (
+        <span className="inline-block w-3 h-3 border-2 border-gray-500 border-t-gray-200 rounded-full animate-spin" />
+      )}
       <span>{label}</span>
     </div>
   );
@@ -70,7 +72,8 @@ export function ChatPanel() {
   const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] =
+    useState<PendingConfirmation | null>(null);
   const [chatModel, setChatModel] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -80,7 +83,6 @@ export function ChatPanel() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  // Use refs for streaming callbacks to avoid stale closures
   const streamingContentRef = useRef("");
 
   // Load chat config on mount
@@ -154,16 +156,16 @@ export function ChatPanel() {
             prev.map((te) =>
               te.tool_call_id === data.tool_call_id
                 ? { ...te, status: "cancelled" as const }
-                : te
-            )
+                : te,
+            ),
           );
         } else {
           setToolExecutions((prev) =>
             prev.map((te) =>
               te.tool_call_id === data.tool_call_id
                 ? { ...te, status: "done" as const, result: data.result }
-                : te
-            )
+                : te,
+            ),
           );
           invalidateAll();
         }
@@ -231,7 +233,7 @@ export function ChatPanel() {
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend],
   );
 
   const handleConfirm = useCallback(
@@ -241,7 +243,7 @@ export function ChatPanel() {
       setPendingConfirmation(null);
       await bridgeConfirm(toolCallId, approved);
     },
-    [pendingConfirmation]
+    [pendingConfirmation],
   );
 
   const handleNewConversation = useCallback(() => {
@@ -262,7 +264,7 @@ export function ChatPanel() {
         setChatModel(prev);
       });
     },
-    [chatModel]
+    [chatModel],
   );
 
   const toggleChat = useCallback(() => {
@@ -276,13 +278,14 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="chat-panel">
-      <div className="chat-panel-header">
+    <div className="w-80 h-full border-l border-gray-800 bg-gray-950 flex flex-col shrink-0">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
         <div>
-          <h3>アシスタント</h3>
+          <h3 className="text-sm font-semibold text-gray-100">アシスタント</h3>
           {availableModels.length > 0 ? (
             <select
-              className="chat-model-select"
+              className="text-xs bg-gray-800 text-gray-400 border border-gray-700 rounded px-1 py-0.5 mt-1"
               value={chatModel}
               onChange={handleModelChange}
             >
@@ -293,12 +296,12 @@ export function ChatPanel() {
               ))}
             </select>
           ) : chatModel ? (
-            <span className="chat-model-label">{chatModel}</span>
+            <span className="text-xs text-gray-500">{chatModel}</span>
           ) : null}
         </div>
-        <div className="chat-panel-header-actions">
+        <div className="flex items-center gap-1">
           <button
-            className="btn-ghost btn-sm"
+            className="p-1 text-gray-400 hover:text-white rounded transition-colors"
             onClick={handleNewConversation}
             title="新しい会話"
           >
@@ -315,7 +318,7 @@ export function ChatPanel() {
             </svg>
           </button>
           <button
-            className="btn-ghost btn-sm"
+            className="p-1 text-gray-400 hover:text-white rounded transition-colors"
             onClick={toggleChat}
             title="閉じる"
           >
@@ -334,9 +337,10 @@ export function ChatPanel() {
         </div>
       </div>
 
-      <div className="chat-messages">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && !isStreaming && (
-          <div className="chat-empty">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm">
             <p>タスクの追加、更新、管理について</p>
             <p>何でも聞いてください</p>
           </div>
@@ -351,15 +355,19 @@ export function ChatPanel() {
         ))}
 
         {streamingContent && (
-          <div className="chat-message chat-message-assistant">
-            <div className="chat-message-content">
+          <div className="flex justify-start">
+            <div className="bg-gray-800 text-gray-100 rounded-lg px-3 py-2 text-sm max-w-[80%]">
               {streamingContent}
-              <span className="chat-cursor" />
+              <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-0.5" />
             </div>
           </div>
         )}
 
-        {error && <div className="chat-error">{error}</div>}
+        {error && (
+          <div className="text-red-400 text-sm px-3 py-2 bg-red-900/20 rounded">
+            {error}
+          </div>
+        )}
 
         {pendingConfirmation && (
           <ConfirmDialog
@@ -374,10 +382,11 @@ export function ChatPanel() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-input-area">
+      {/* Input */}
+      <div className="flex items-end gap-2 p-3 border-t border-gray-800">
         <textarea
           ref={inputRef}
-          className="chat-input"
+          className="flex-1 bg-gray-800 text-gray-100 text-sm rounded-md px-3 py-2 resize-none border border-gray-700 focus:outline-none focus:border-gray-500"
           placeholder="メッセージを入力..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -386,7 +395,11 @@ export function ChatPanel() {
           disabled={isStreaming}
         />
         {isStreaming ? (
-          <button className="chat-send-btn" onClick={handleStop} title="停止">
+          <button
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={handleStop}
+            title="停止"
+          >
             <svg
               width="16"
               height="16"
@@ -398,7 +411,7 @@ export function ChatPanel() {
           </button>
         ) : (
           <button
-            className="chat-send-btn"
+            className="p-2 text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
             onClick={handleSend}
             disabled={!canSend}
             title="送信"

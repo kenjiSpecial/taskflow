@@ -1,8 +1,54 @@
 -- ステータスを5段階カンバンフローに移行: pending→backlog, completed→done
 -- 新ステータス: backlog | todo | in_progress | review | done
+-- SQLiteではCHECK制約をALTERで変更できないため、テーブル再作成が必要
 
-UPDATE todos SET status = 'backlog' WHERE status = 'pending';
-UPDATE todos SET status = 'done' WHERE status = 'completed';
+-- FK制約を一時無効化
+PRAGMA foreign_keys = OFF;
 
--- completed_at → done_at にリネーム
-ALTER TABLE todos RENAME COLUMN completed_at TO done_at;
+-- 1. 新テーブルを作成（新ステータス制約 + done_at）
+CREATE TABLE todos_new (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    title TEXT NOT NULL CHECK(length(title) <= 200),
+    description TEXT CHECK(length(description) <= 2000),
+    status TEXT NOT NULL DEFAULT 'backlog' CHECK(status IN ('backlog', 'todo', 'in_progress', 'review', 'done')),
+    priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('high', 'medium', 'low')),
+    due_date TEXT,
+    project TEXT,
+    project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+    parent_id TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    done_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    deleted_at TEXT
+);
+
+-- 2. データを移行（ステータスを変換しながら）
+INSERT INTO todos_new (id, title, description, status, priority, due_date, project, project_id, parent_id, sort_order, done_at, created_at, updated_at, deleted_at)
+SELECT
+    id, title, description,
+    CASE status
+        WHEN 'pending' THEN 'backlog'
+        WHEN 'completed' THEN 'done'
+        ELSE status
+    END,
+    priority, due_date, project, project_id, parent_id, sort_order,
+    completed_at,
+    created_at, updated_at, deleted_at
+FROM todos;
+
+-- 3. 旧テーブルを削除し、新テーブルをリネーム
+DROP TABLE todos;
+ALTER TABLE todos_new RENAME TO todos;
+
+-- 4. インデックスを再作成
+CREATE INDEX idx_todos_status ON todos(status);
+CREATE INDEX idx_todos_priority ON todos(priority);
+CREATE INDEX idx_todos_due_date ON todos(due_date);
+CREATE INDEX idx_todos_project ON todos(project);
+CREATE INDEX idx_todos_parent_id ON todos(parent_id);
+CREATE INDEX idx_todos_deleted_at ON todos(deleted_at);
+CREATE INDEX idx_todos_project_id ON todos(project_id) WHERE deleted_at IS NULL;
+
+-- FK制約を再有効化
+PRAGMA foreign_keys = ON;

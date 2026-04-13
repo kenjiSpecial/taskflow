@@ -8,7 +8,7 @@ interface ChatToggleButtonProps {
 export function ChatToggleButton({ isOpen, onClick }: ChatToggleButtonProps) {
   return (
     <button
-      className="chat-toggle-btn"
+      className="fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transition-colors"
       onClick={onClick}
       title={isOpen ? "チャットを閉じる" : "チャットアシスタント"}
       aria-label={isOpen ? "チャットを閉じる" : "チャットを開く"}
