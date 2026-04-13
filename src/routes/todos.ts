@@ -317,6 +317,18 @@ app.patch("/:id", async (c) => {
     }),
   );
 
+  // tf-agent に通知（ステータスが変わった場合のみ）
+  const TF_AGENT_STATUSES = new Set(["ready_for_code", "review"]);
+  if (data.status && TF_AGENT_STATUSES.has(data.status) && existing.status !== data.status) {
+    c.executionCtx.waitUntil(
+      fetch("http://localhost:4300/webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: id, status: data.status }),
+      }).catch(() => {}), // 通知失敗してもタスク更新は成功扱い
+    );
+  }
+
   return c.json({ todo });
 });
 
