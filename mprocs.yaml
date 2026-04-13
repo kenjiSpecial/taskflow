@@ -1,0 +1,21 @@
+procs:
+  backend:
+    shell: wrangler dev --remote --port 8787
+    cwd: /Users/saito_kenji/github/taskflow
+
+  frontend:
+    shell: pnpm dev
+    cwd: /Users/saito_kenji/github/taskflow/frontend
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:8787
+      NEXT_PUBLIC_API_TOKEN: ${TASKFLOW_API_TOKEN}
+
+  tf-agent:
+    shell: bun run src/server.ts
+    cwd: /Users/saito_kenji/Projects/notahotel-lp-web-main/tools/tf-agent
+    env:
+      PORT: "4300"
+      TASKFLOW_API_URL: http://localhost:8787
+      TASKFLOW_API_TOKEN: ${TASKFLOW_API_TOKEN}
+      REPO_PATH: /Users/saito_kenji/Projects/notahotel-lp-web-main
+      MAX_CONCURRENCY: "10"
