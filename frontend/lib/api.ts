@@ -54,6 +54,12 @@ export async function fetchProjects(
   return request(`/api/projects${query}`);
 }
 
+export async function fetchProject(
+  id: string
+): Promise<{ project: Project }> {
+  return request(`/api/projects/${id}`);
+}
+
 export async function createProject(
   data: CreateProjectInput
 ): Promise<{ project: Project }> {
