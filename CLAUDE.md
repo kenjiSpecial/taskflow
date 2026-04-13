@@ -1,12 +1,12 @@
 # Taskflow
 
-個人用タスク・スケジュール管理システム。Hono + D1 + Preact on Cloudflare。
+個人用タスク・スケジュール管理システム。Hono + D1 + Next.js on Cloudflare。
 
 ## 技術スタック
 
 - **API**: Hono on Cloudflare Workers
 - **DB**: Cloudflare D1 (SQLite)
-- **Frontend**: Preact SPA + @preact/signals (Vite)
+- **Frontend**: Next.js App Router + TanStack Query (Cloudflare Workers via @opennextjs/cloudflare)
 - **Auth**: Bearer Token
 - **Test**: Vitest + @cloudflare/vitest-pool-workers
 - **CI/CD**: GitHub Actions → main push で自動デプロイ
@@ -24,8 +24,10 @@ npm test             # vitest run
 npm run typecheck    # tsc --noEmit
 
 # フロントエンド
-cd frontend && npm run dev    # vite (port 5173)
-cd frontend && npm run build  # ビルド
+cd frontend && npm run dev      # next dev (port 5173)
+cd frontend && npm run build    # next build
+cd frontend && npm run preview  # opennextjs-cloudflare preview
+cd frontend && npm run deploy   # opennextjs-cloudflare deploy
 ```
 
 ## プロジェクト構成
@@ -38,10 +40,10 @@ src/                  # Hono API (Workers)
   routes/             # todos, projects
   validators/         # Zodスキーマ
   lib/                # DBヘルパー
-frontend/src/         # Preact SPA (Pages)
-  stores/             # @preact/signals
-  components/         # UI コンポーネント
-  lib/                # API クライアント
+frontend/              # Next.js App Router (Cloudflare Workers)
+  app/                 # ページ (/, /tasks/[id], /projects, etc.)
+  components/          # UIコンポーネント
+  lib/                 # APIクライアント、hooks、型定義
 migrations/           # D1 SQL マイグレーション
 test/                 # Vitest テスト
 ```
@@ -57,15 +59,9 @@ test/                 # Vitest テスト
 - タスク階層は2階層まで（親-子のみ）
 - APIはUTC保存、フロントでJST変換
 
-### Preact Signals ルール
+### TanStack Query・API ルール
 
-- コンポーネント内: `useComputed()` / `useSignal()` を使用
-- モジュールレベル（store等）: `computed()` / `signal()` を使用
-- コンポーネント内で `computed()` / `signal()` を使わない（メモリリーク）
-
-### ストア・API ルール
-
-- コンポーネントから `api.*` を直接呼ばない。必ずストア経由
+- コンポーネントから `api.*` を直接呼ばない。必ずTanStack Queryフック経由
 - D1のFK制約に依存しない。CREATE/UPDATEで `*_id` 参照先の存在チェック必須
 
 ## 環境変数
