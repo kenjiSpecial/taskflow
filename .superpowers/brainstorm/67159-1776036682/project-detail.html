@@ -1,0 +1,101 @@
+<h2>5. プロジェクト詳細ページ (/projects/[id])</h2>
+<p class="subtitle">プロジェクト配下のタスク・セッションを俯瞰するページ</p>
+
+<div class="mockup">
+  <div class="mockup-header">TaskFlow — プロジェクト: TaskFlow</div>
+  <div class="mockup-body" style="padding:20px">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:12px;height:12px;border-radius:3px;background:#4da6ff"></div>
+          <span style="font-size:12px;color:#888">プロジェクト</span>
+        </div>
+        <h2 style="font-size:22px;margin:0;font-weight:600">TaskFlow</h2>
+        <p style="color:#888;font-size:13px;margin-top:4px">個人用タスク・スケジュール管理システム</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="background:#252540;border:1px solid #444;color:#ccc;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">LLMプロンプトをコピー</button>
+        <button style="background:#252540;border:1px solid #444;color:#ccc;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">編集</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:flex;gap:12px;margin-bottom:20px">
+      <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:24px;font-weight:600">8</div>
+        <div style="font-size:11px;color:#888">タスク合計</div>
+      </div>
+      <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:24px;font-weight:600;color:#f0ad4e">2</div>
+        <div style="font-size:11px;color:#888">進行中</div>
+      </div>
+      <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:24px;font-weight:600;color:#2ecc71">5</div>
+        <div style="font-size:11px;color:#888">完了</div>
+      </div>
+      <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:24px;font-weight:600;color:#9b59b6">1</div>
+        <div style="font-size:11px;color:#888">セッション</div>
+      </div>
+    </div>
+
+    <!-- Tasks by status -->
+    <div style="margin-bottom:20px">
+      <h3 style="font-size:14px;color:#888;margin-bottom:10px">タスク</h3>
+
+      <!-- Status groups -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#f0ad4e;margin-bottom:6px;font-weight:500">IN PROGRESS (2)</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <a href="#" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252540;border-radius:6px;text-decoration:none;color:inherit">
+            <div style="width:7px;height:7px;border-radius:50%;background:#f0ad4e"></div>
+            <span style="font-size:13px;flex:1">フロントエンド移行</span>
+            <span style="font-size:11px;color:#f0ad4e;background:#3d2e1a;padding:1px 6px;border-radius:3px">High</span>
+            <span style="font-size:11px;color:#666">4/20</span>
+          </a>
+          <a href="#" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252540;border-radius:6px;text-decoration:none;color:inherit">
+            <div style="width:7px;height:7px;border-radius:50%;background:#f0ad4e"></div>
+            <span style="font-size:13px;flex:1">API最適化</span>
+            <span style="font-size:11px;color:#888;background:#1a1a2e;padding:1px 6px;border-radius:3px">Medium</span>
+            <span style="font-size:11px;color:#666">4/25</span>
+          </a>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;font-weight:500">BACKLOG (1)</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <a href="#" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252540;border-radius:6px;text-decoration:none;color:inherit">
+            <div style="width:7px;height:7px;border-radius:50%;background:#666"></div>
+            <span style="font-size:13px;flex:1">パフォーマンスチューニング</span>
+            <span style="font-size:11px;color:#888;background:#1a1a2e;padding:1px 6px;border-radius:3px">Low</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer">
+          <span style="font-size:12px;color:#2ecc71;font-weight:500">DONE (5)</span>
+          <span style="font-size:11px;color:#666">▶ 展開</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions -->
+    <div>
+      <h3 style="font-size:14px;color:#888;margin-bottom:10px">セッション</h3>
+      <a href="#" style="display:block;padding:12px;background:#252540;border-radius:6px;text-decoration:none;color:inherit">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:500">Next.js移行作業</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">2026-04-13 ● Active ● タスク2件リンク</div>
+          </div>
+          <span style="font-size:12px;color:#4da6ff">→</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;color:#888;font-size:13px">ステータスごとにグルーピングしたタスクリスト + セッション一覧。フィードバックをどうぞ。</p>

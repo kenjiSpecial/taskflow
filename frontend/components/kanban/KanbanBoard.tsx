@@ -13,6 +13,7 @@ const COLUMNS: TodoStatus[] = [
   "ready_for_code",
   "in_progress",
   "review",
+  "ready_for_publish",
   "done",
 ];
 
@@ -53,6 +54,7 @@ function groupByProject(
       ready_for_code: [],
       in_progress: [],
       review: [],
+      ready_for_publish: [],
       done: [],
     };
     let hasAny = false;
@@ -75,6 +77,7 @@ function groupByProject(
     ready_for_code: [],
     in_progress: [],
     review: [],
+    ready_for_publish: [],
     done: [],
   };
   let hasNoProject = false;
@@ -202,6 +205,7 @@ export function KanbanBoard() {
       ready_for_code: [],
       in_progress: [],
       review: [],
+      ready_for_publish: [],
       done: [],
     };
     if (todosData?.todos) {

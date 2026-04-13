@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createTodoSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  status: z.enum(["backlog", "todo", "ready_for_code", "in_progress", "review", "done"]).default("backlog"),
+  status: z.enum(["backlog", "todo", "ready_for_code", "in_progress", "review", "ready_for_publish", "done"]).default("backlog"),
   priority: z.enum(["high", "medium", "low"]).default("medium"),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   project: z.string().max(100).optional(),
@@ -34,7 +34,7 @@ export const listTodoLogsQuery = z.object({
 });
 
 export const listTodosQuery = z.object({
-  status: z.enum(["backlog", "todo", "ready_for_code", "in_progress", "review", "done"]).optional(),
+  status: z.enum(["backlog", "todo", "ready_for_code", "in_progress", "review", "ready_for_publish", "done"]).optional(),
   priority: z.enum(["high", "medium", "low"]).optional(),
   project: z.string().optional(),
   project_id: z.string().optional(),

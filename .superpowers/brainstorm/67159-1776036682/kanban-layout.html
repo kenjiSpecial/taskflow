@@ -1,0 +1,96 @@
+<h2>3. トップページ: カンバンボード</h2>
+<p class="subtitle">タスク中心のメインビュー。どのレイアウトが良いですか？</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>横スクロール カンバン</h3>
+      <p>Trello/Linear風。5カラムが横に並び、カード型タスクをドラッグ&ドロップで移動。</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">TaskFlow — カンバンボード</div>
+        <div class="mockup-body" style="padding:16px">
+          <div style="display:flex;gap:12px;overflow-x:auto;min-height:300px">
+            <div style="min-width:200px;flex:1;background:#1a1a2e;border-radius:8px;padding:12px">
+              <div style="font-weight:600;color:#888;font-size:13px;margin-bottom:8px">BACKLOG <span style="background:#333;padding:2px 6px;border-radius:10px;font-size:11px">3</span></div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #666">
+                <div style="font-size:13px;font-weight:500">API設計書を作成</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">プロジェクトA</div>
+              </div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #666">
+                <div style="font-size:13px;font-weight:500">DBスキーマ検討</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">プロジェクトB</div>
+              </div>
+            </div>
+            <div style="min-width:200px;flex:1;background:#1a1a2e;border-radius:8px;padding:12px">
+              <div style="font-weight:600;color:#4da6ff;font-size:13px;margin-bottom:8px">TODO <span style="background:#1a3a5c;padding:2px 6px;border-radius:10px;font-size:11px">2</span></div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #4da6ff">
+                <div style="font-size:13px;font-weight:500">ログイン画面実装</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">プロジェクトA</div>
+              </div>
+            </div>
+            <div style="min-width:200px;flex:1;background:#1a1a2e;border-radius:8px;padding:12px">
+              <div style="font-weight:600;color:#f0ad4e;font-size:13px;margin-bottom:8px">IN PROGRESS <span style="background:#3d2e1a;padding:2px 6px;border-radius:10px;font-size:11px">1</span></div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #f0ad4e">
+                <div style="font-size:13px;font-weight:500">フロントエンド移行</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">TaskFlow</div>
+                <div style="font-size:10px;color:#f0ad4e;margin-top:4px">● セッション進行中</div>
+              </div>
+            </div>
+            <div style="min-width:200px;flex:1;background:#1a1a2e;border-radius:8px;padding:12px">
+              <div style="font-weight:600;color:#9b59b6;font-size:13px;margin-bottom:8px">REVIEW <span style="background:#2d1a3d;padding:2px 6px;border-radius:10px;font-size:11px">1</span></div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #9b59b6">
+                <div style="font-size:13px;font-weight:500">テストカバレッジ改善</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">プロジェクトA</div>
+              </div>
+            </div>
+            <div style="min-width:200px;flex:1;background:#1a1a2e;border-radius:8px;padding:12px">
+              <div style="font-weight:600;color:#2ecc71;font-size:13px;margin-bottom:8px">DONE <span style="background:#1a3d2e;padding:2px 6px;border-radius:10px;font-size:11px">5</span></div>
+              <div style="background:#252540;border-radius:6px;padding:10px;margin-bottom:8px;border-left:3px solid #2ecc71;opacity:0.6">
+                <div style="font-size:13px;font-weight:500">CI/CDパイプライン構築</div>
+                <div style="font-size:11px;color:#888;margin-top:4px">TaskFlow</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>リスト + ステータスタブ</h3>
+      <p>Linear風のリストビュー。上部タブでステータス切替。コンパクトで一覧性が高い。</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">TaskFlow — タスクリスト</div>
+        <div class="mockup-body" style="padding:16px">
+          <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:8px">
+            <div style="padding:6px 14px;background:#252540;border-radius:6px 6px 0 0;font-size:13px;color:#f0ad4e;border-bottom:2px solid #f0ad4e">In Progress (1)</div>
+            <div style="padding:6px 14px;font-size:13px;color:#888">Backlog (3)</div>
+            <div style="padding:6px 14px;font-size:13px;color:#888">Todo (2)</div>
+            <div style="padding:6px 14px;font-size:13px;color:#888">Review (1)</div>
+            <div style="padding:6px 14px;font-size:13px;color:#888">Done (5)</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#252540;border-radius:6px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f0ad4e"></div>
+              <div style="flex:1;font-size:13px;font-weight:500">フロントエンド移行</div>
+              <div style="font-size:11px;color:#888;background:#1a1a2e;padding:2px 8px;border-radius:4px">TaskFlow</div>
+              <div style="font-size:11px;color:#888">high</div>
+              <div style="font-size:11px;color:#888">4/15</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>カンバン + リスト切替</h3>
+      <p>トグルで両ビューを切替可能。ユーザーの好みに応じて使い分け。</p>
+    </div>
+  </div>
+</div>

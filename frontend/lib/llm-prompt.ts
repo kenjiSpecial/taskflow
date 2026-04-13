@@ -5,6 +5,7 @@ const STATUS_LABELS: Record<string, string> = {
   todo: "Todo",
   in_progress: "In Progress",
   review: "Review",
+  ready_for_publish: "公開待ち",
   done: "Done",
   active: "Active",
   paused: "Paused",

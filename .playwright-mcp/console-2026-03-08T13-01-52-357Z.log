@@ -1,0 +1,3 @@
+[  300886ms] [ERROR] WebSocket connection to 'ws://localhost:5173/?token=ZefGj0Sbkqxd' failed:  @ http://localhost:5173/@vite/client:801
+[  300886ms] [ERROR] WebSocket connection to 'wss://taskflow.kenji-draemon.workers.dev/api/realtime?token=taskflow-bearer-2026&client_id=d6cf189c-3479-491a-b3ce-33c4e9827238' failed:  @ http://localhost:5173/src/stores/realtime-store.ts:93
+[  301037ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ https://127.0.0.1:19876/chat/config:0

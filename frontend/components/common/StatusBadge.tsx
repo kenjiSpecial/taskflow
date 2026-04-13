@@ -23,6 +23,11 @@ const STATUS_CONFIG: Record<
     color: "text-purple-400",
     dotColor: "bg-purple-400",
   },
+  ready_for_publish: {
+    label: "公開待ち",
+    color: "text-orange-400",
+    dotColor: "bg-orange-400",
+  },
   done: { label: "Done", color: "text-green-400", dotColor: "bg-green-400" },
 };
 

@@ -10,6 +10,7 @@ const STATUS_LABEL: Record<TodoStatus, string> = {
   ready_for_code: "READY FOR CODE",
   in_progress: "IN PROGRESS",
   review: "REVIEW",
+  ready_for_publish: "公開待ち",
   done: "DONE",
 };
 
@@ -19,6 +20,7 @@ const STATUS_BADGE_COLOR: Record<TodoStatus, string> = {
   ready_for_code: "bg-cyan-900 text-cyan-300",
   in_progress: "bg-amber-900 text-amber-300",
   review: "bg-purple-900 text-purple-300",
+  ready_for_publish: "bg-orange-900 text-orange-300",
   done: "bg-green-900 text-green-300",
 };
 
@@ -28,6 +30,7 @@ const STATUS_HIGHLIGHT: Record<TodoStatus, string> = {
   ready_for_code: "ring-cyan-400/50 bg-cyan-900/20",
   in_progress: "ring-amber-400/50 bg-amber-900/20",
   review: "ring-purple-400/50 bg-purple-900/20",
+  ready_for_publish: "ring-orange-400/50 bg-orange-900/20",
   done: "ring-green-400/50 bg-green-900/20",
 };
 

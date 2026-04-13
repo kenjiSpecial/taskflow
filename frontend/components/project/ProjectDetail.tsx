@@ -25,6 +25,7 @@ const STATUS_LABELS: Record<TodoStatus, string> = {
   ready_for_code: "Ready for Code",
   in_progress: "In Progress",
   review: "Review",
+  ready_for_publish: "公開待ち",
   done: "Done",
 };
 

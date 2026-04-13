@@ -1,0 +1,121 @@
+<h2>4. タスク詳細ページ (/tasks/[id])</h2>
+<p class="subtitle">タスクの情報表示・編集・紐づけ操作・LLMプロンプトコピーを行うページ</p>
+
+<div class="mockup">
+  <div class="mockup-header">TaskFlow — タスク詳細: フロントエンド移行</div>
+  <div class="mockup-body" style="padding:20px">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#f0ad4e"></div>
+          <span style="font-size:12px;color:#f0ad4e;text-transform:uppercase">In Progress</span>
+          <span style="font-size:12px;color:#666">→</span>
+          <select style="font-size:12px;background:#252540;color:#ccc;border:1px solid #444;border-radius:4px;padding:2px 4px">
+            <option>Backlog</option>
+            <option>Todo</option>
+            <option selected>In Progress</option>
+            <option>Review</option>
+            <option>Done</option>
+          </select>
+        </div>
+        <h2 style="font-size:22px;margin:0;font-weight:600">フロントエンド移行</h2>
+        <p style="color:#888;font-size:13px;margin-top:4px">Preact SPAからNext.jsへの全面移行</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="background:#252540;border:1px solid #444;color:#ccc;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">LLMプロンプトをコピー</button>
+        <button style="background:#252540;border:1px solid #444;color:#ccc;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">編集</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:24px">
+      <!-- Main content -->
+      <div style="flex:2">
+        <!-- Properties -->
+        <div style="background:#1a1a2e;border-radius:8px;padding:16px;margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+            <div>
+              <span style="color:#666">プロジェクト</span>
+              <div style="margin-top:2px"><a href="#" style="color:#4da6ff;text-decoration:none">TaskFlow</a></div>
+            </div>
+            <div>
+              <span style="color:#666">優先度</span>
+              <div style="margin-top:2px"><span style="background:#3d2e1a;color:#f0ad4e;padding:2px 8px;border-radius:4px;font-size:11px">High</span></div>
+            </div>
+            <div>
+              <span style="color:#666">期日</span>
+              <div style="margin-top:2px">2026-04-20</div>
+            </div>
+            <div>
+              <span style="color:#666">タグ</span>
+              <div style="margin-top:2px;display:flex;gap:4px">
+                <span style="background:#1a3a5c;color:#4da6ff;padding:2px 8px;border-radius:4px;font-size:11px">仕事</span>
+                <span style="background:#2d1a3d;color:#9b59b6;padding:2px 8px;border-radius:4px;font-size:11px">学習</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub tasks -->
+        <div style="margin-bottom:16px">
+          <h3 style="font-size:14px;color:#888;margin-bottom:8px">サブタスク (2)</h3>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252540;border-radius:6px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#4da6ff"></div>
+              <span style="font-size:13px;flex:1">コンポーネント移植</span>
+              <span style="font-size:11px;color:#4da6ff">Todo</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#252540;border-radius:6px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#888"></div>
+              <span style="font-size:13px;flex:1">ストア再実装</span>
+              <span style="font-size:11px;color:#888">Backlog</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div>
+          <h3 style="font-size:14px;color:#888;margin-bottom:8px">セッション (1)</h3>
+          <div style="padding:12px;background:#252540;border-radius:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;font-weight:500">Next.js移行作業</div>
+                <div style="font-size:11px;color:#888;margin-top:2px">2026-04-13 開始 ● Active</div>
+              </div>
+              <a href="#" style="font-size:12px;color:#4da6ff;text-decoration:none">詳細 →</a>
+            </div>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid #333">
+              <div style="font-size:11px;color:#888">最新ログ:</div>
+              <div style="font-size:12px;color:#ccc;margin-top:2px">ページ構成を決定、App Router設定完了</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div style="flex:1;min-width:200px">
+        <div style="background:#1a1a2e;border-radius:8px;padding:16px">
+          <h3 style="font-size:13px;color:#888;margin-bottom:12px">紐づけ</h3>
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;color:#666;margin-bottom:4px">プロジェクト変更</div>
+            <select style="width:100%;font-size:12px;background:#252540;color:#ccc;border:1px solid #444;border-radius:4px;padding:6px">
+              <option selected>TaskFlow</option>
+              <option>プロジェクトA</option>
+              <option>プロジェクトB</option>
+            </select>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;color:#666;margin-bottom:4px">セッションをリンク</div>
+            <button style="width:100%;background:#252540;border:1px solid #444;color:#888;padding:6px;border-radius:4px;font-size:12px;cursor:pointer">+ セッションを追加</button>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#666;margin-bottom:4px">タグ追加</div>
+            <button style="width:100%;background:#252540;border:1px solid #444;color:#888;padding:6px;border-radius:4px;font-size:12px;cursor:pointer">+ タグを追加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;color:#888;font-size:13px">このレイアウトで良いですか？ターミナルでフィードバックをどうぞ。</p>
