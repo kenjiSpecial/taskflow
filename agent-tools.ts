@@ -175,6 +175,23 @@ export const agentTools: Tool[] = [
     }),
   },
   {
+    name: "list_todo_logs",
+    description: "タスクのログ一覧を取得。作業メモや進捗記録を時系列で表示。",
+    parameters: Type.Object({
+      todo_id: Type.String({ description: "タスクID" }),
+      limit: Type.Optional(Type.Number({ description: "取得件数（デフォルト50）" })),
+    }),
+  },
+  {
+    name: "add_todo_log",
+    description: "タスクにログ（作業メモ）を追加。Markdown対応。エージェント経由の場合source=aiを指定。",
+    parameters: Type.Object({
+      todo_id: Type.String({ description: "タスクID" }),
+      content: Type.String({ description: "ログ内容（Markdown対応）" }),
+      source: Type.Optional(Type.String({ description: "human | ai（デフォルト: human）。エージェント経由ならai" })),
+    }),
+  },
+  {
     name: "list_tags",
     description: "タグ一覧を取得。",
     parameters: Type.Object({}),
@@ -345,6 +362,23 @@ export const toolApiMap: Record<string, ToolApiMapping> = {
   unlink_task_from_session: {
     method: "DELETE",
     path: (args) => `/api/sessions/${args.session_id}/tasks/${args.todo_id}`,
+  },
+  list_todo_logs: {
+    method: "GET",
+    path: (args) => `/api/todos/${args.todo_id}/logs`,
+    queryParams: (args) => {
+      const params: Record<string, string> = {};
+      if (args.limit) params.limit = String(args.limit);
+      return params;
+    },
+  },
+  add_todo_log: {
+    method: "POST",
+    path: (args) => `/api/todos/${args.todo_id}/logs`,
+    body: ({ content, source }) => ({
+      content,
+      ...(source && { source }),
+    }),
   },
   list_tags: {
     method: "GET",

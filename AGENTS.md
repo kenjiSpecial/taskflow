@@ -29,16 +29,16 @@ GET /health
 
 ```bash
 GET /api/todos
-GET /api/todos?status=pending&priority=high&project=work&sort=due_date&order=asc&limit=50&offset=0
+GET /api/todos?status=backlog&priority=high&project_id=xxx&sort=due_date&order=asc&limit=50&offset=0
 ```
 
 パラメータ:
-- `status`: pending | in_progress | completed
+- `status`: backlog | todo | in_progress | review | done
 - `priority`: high | medium | low
-- `project`: プロジェクト名
-- `sort`: due_date | priority | created_at | sort_order (default: created_at)
-- `order`: asc | desc (default: desc)
-- `limit`: 1-100 (default: 50)
+- `project_id`: プロジェクトID
+- `sort`: due_date | priority | created_at | sort_order (default: sort_order)
+- `order`: asc | desc (default: asc)
+- `limit`: 1-1000 (default: 50)
 - `offset`: 0~ (default: 0)
 
 ### TODO詳細（子タスク含む）
@@ -56,10 +56,10 @@ Content-Type: application/json
 {
   "title": "タスク名",
   "description": "詳細説明（任意）",
-  "status": "pending",
+  "status": "backlog",
   "priority": "high",
   "due_date": "2026-03-01",
-  "project": "work",
+  "project_id": "プロジェクトID（任意）",
   "parent_id": "親タスクID（任意）",
   "sort_order": 0
 }
@@ -74,7 +74,7 @@ PATCH /api/todos/:id
 Content-Type: application/json
 
 {
-  "status": "completed"
+  "status": "done"
 }
 ```
 
@@ -94,28 +94,84 @@ DELETE /api/todos/:id
 GET /api/todos/today?timezone=Asia/Tokyo
 ```
 
+### タスクログ一覧
+
+```bash
+GET /api/todos/:id/logs?order=asc&limit=50&offset=0
+```
+
+### タスクログ追加
+
+```bash
+POST /api/todos/:id/logs
+Content-Type: application/json
+
+{
+  "content": "Markdown対応のログ内容",
+  "source": "ai"
+}
+```
+
+source: `human`（デフォルト）| `ai`。UI経由はhuman、エージェント経由はaiを指定。
+
 ### プロジェクト一覧
 
 ```bash
 GET /api/projects
 ```
 
+### プロジェクト詳細
+
+```bash
+GET /api/projects/:id
+```
+
+### セッション一覧
+
+```bash
+GET /api/sessions?status=active&project_id=xxx
+```
+
+### セッションログ追加
+
+```bash
+POST /api/sessions/:id/logs
+Content-Type: application/json
+
+{
+  "content": "ログ内容",
+  "source": "ai"
+}
+```
+
+source: `human`（デフォルト）| `ai`
+
+## ステータス
+
+- タスク: `backlog | todo | in_progress | review | done`
+- セッション: `active | paused | done`
+
 ## 使用例
 
 ```bash
 # 一覧取得
-curl -H "Authorization: Bearer $TODO_API_TOKEN" http://localhost:8787/api/todos
+curl -H "Authorization: Bearer $TODO_API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos
 
 # 作成
 curl -X POST -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"title":"レポートを書く","priority":"high","due_date":"2026-03-01"}' \
-  http://localhost:8787/api/todos
+  https://taskflow.kenji-draemon.workers.dev/api/todos
 
-# 完了にする
+# ステータス変更
 curl -X PATCH -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"status":"completed"}' \
-  http://localhost:8787/api/todos/<id>
+  -d '{"status":"done"}' \
+  https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
+
+# タスクログ追加（AI経由）
+curl -X POST -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"content":"実装完了","source":"ai"}' \
+  https://taskflow.kenji-draemon.workers.dev/api/todos/<id>/logs
 
 # 削除
-curl -X DELETE -H "Authorization: Bearer $TODO_API_TOKEN" http://localhost:8787/api/todos/<id>
+curl -X DELETE -H "Authorization: Bearer $TODO_API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
 ```
