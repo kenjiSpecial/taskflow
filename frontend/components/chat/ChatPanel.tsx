@@ -303,10 +303,15 @@ export function ChatPanel() {
         streamingContentRef.current = "";
         setIsStreaming(false);
       },
-    }, { context: buildViewContext(pathname) });
+    }, {
+      context: buildViewContext(pathname),
+      history: messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role, content: m.content, timestamp: Date.now() })),
+    });
 
     abortRef.current = ctrl;
-  }, [inputText, isStreaming, invalidateAll, pathname]);
+  }, [inputText, isStreaming, invalidateAll, pathname, messages]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
