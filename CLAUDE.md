@@ -5,7 +5,7 @@
 ## 技術スタック
 
 - **API**: Hono on Cloudflare Workers
-- **DB**: Cloudflare D1 (SQLite)
+- **DB**: Cloudflare D1 (SQLite) — 開発・本番ともリモートD1を使用
 - **Frontend**: Next.js App Router + TanStack Query (Cloudflare Workers via @opennextjs/cloudflare)
 - **Auth**: Bearer Token
 - **Test**: Vitest + @cloudflare/vitest-pool-workers

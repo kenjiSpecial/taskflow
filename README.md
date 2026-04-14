@@ -18,33 +18,61 @@
 ## セットアップ
 
 ```bash
-# バックエンド
+# 依存インストール
 npm install
-cp .dev.vars.example .dev.vars  # API_TOKEN を設定
-npx wrangler d1 migrations apply taskflow-db --local
-npm run dev
+cd frontend && pnpm install
 
-# フロントエンド
-cd frontend && npm install
-cp .env.example .env.local  # NEXT_PUBLIC_API_TOKEN を設定
-cd frontend && npm run dev
+# 環境変数
+cp .dev.vars.example .dev.vars          # API_TOKEN を設定
+cp frontend/.env.example frontend/.env.local  # NEXT_PUBLIC_API_TOKEN を設定
+
+# D1マイグレーション（リモート）
+npx wrangler d1 migrations apply taskflow-db --remote
 ```
 
-ブラウザで http://localhost:5173 を開く。
+> DBはCloudflare上のリモートD1を使用。ローカルD1は使わない。
 
 ## 開発コマンド
 
+### 一括起動（推奨）
+
 ```bash
-# バックエンド
-npm run dev          # wrangler dev (port 8787)
+npm run dev:all    # mprocs で backend + frontend + tf-agent を一括起動
+```
+
+[mprocs](https://github.com/pvolok/mprocs) で以下の3プロセスを同時起動する:
+
+| プロセス | コマンド | ポート |
+|---------|---------|-------|
+| backend | `wrangler dev --remote` | 8787 |
+| frontend | `pnpm dev` (Next.js) | 5173 |
+| tf-agent | Bun サーバー（別リポジトリ） | 4300 |
+
+ブラウザで http://localhost:5173 を開く。
+
+### 個別起動
+
+```bash
+npm run dev                        # wrangler dev (port 8787) ※--remote なしだとローカルD1
+npx wrangler dev --remote          # リモートD1に接続する場合
+cd frontend && pnpm dev            # next dev (port 5173)
+```
+
+### ビルド・デプロイ
+
+```bash
+cd frontend && pnpm build          # next build
+cd frontend && pnpm preview        # opennextjs-cloudflare preview
+cd frontend && pnpm deploy         # opennextjs-cloudflare deploy
+```
+
+### テスト・品質
+
+```bash
 npm test             # vitest run
 npm run typecheck    # tsc --noEmit
-
-# フロントエンド
-cd frontend && npm run dev      # next dev (port 5173)
-cd frontend && npm run build    # next build
-cd frontend && npm run preview  # opennextjs-cloudflare preview
-cd frontend && npm run deploy   # opennextjs-cloudflare deploy
+npm run lint         # oxlint
+npm run format       # oxfmt
 ```
 
 ## プロジェクト構成
