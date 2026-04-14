@@ -110,6 +110,19 @@ export function ChatPanel() {
   const streamingContentRef = useRef("");
   const lastGreetedPathRef = useRef<string | null>(null);
 
+  // Listen for task reference insert events from kanban cards
+  useEffect(() => {
+    function handleInsertRef(e: Event) {
+      const { type, id, title } = (e as CustomEvent).detail as { type: string; id: string; title: string };
+      const ref = type === "task" ? `[タスク: ${title} (ID: ${id})] ` : `[${title} (ID: ${id})] `;
+      setInputText((prev) => prev + ref);
+      setIsChatOpen(true);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+    window.addEventListener("taskflow:insert-ref", handleInsertRef);
+    return () => window.removeEventListener("taskflow:insert-ref", handleInsertRef);
+  }, []);
+
   // Load chat config on mount
   useEffect(() => {
     void bridgeChatConfig()

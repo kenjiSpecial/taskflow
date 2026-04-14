@@ -251,13 +251,19 @@ function buildSystemPrompt(viewContext?: ViewContext): string {
 タスク・プロジェクト・セッション・タグの作成・更新・削除、タスクログの記録、進捗確認。
 
 ## ステータスフロー
-タスクは6段階で進行: backlog → todo → ready_for_code → in_progress → review → done
+タスクは8段階で進行: backlog → todo → ready_for_code → in_progress → review → waiting → ready_for_publish → done
 - backlog: 未整理・いつかやる
 - todo: 次やる
 - ready_for_code: 仕様確定済み、AIコーディングエージェントが着手可能
 - in_progress: 作業中
 - review: レビュー待ち
+- waiting: 外部ブロッカー待ち
+- ready_for_publish: 実装完了、公開待ち
 - done: 完了
+
+## タスク参照
+ユーザーのメッセージに `[タスク: タイトル (ID: xxx)]` が含まれる場合、そのタスクを操作対象として認識する。
+IDを使って get_todo や update_todo を直接呼び出せる。確認なしにそのタスクに対して操作してよい。
 
 ## 基本ルール
 - 操作前にツールで現状を確認する
