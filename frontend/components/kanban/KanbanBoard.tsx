@@ -108,7 +108,7 @@ function MiniDoneDropZone({ onDrop }: { onDrop: (todoId: string) => void }) {
 
   return (
     <div
-      className={`flex-shrink-0 w-20 rounded-xl flex flex-col items-center justify-center transition-all duration-150 border-2 border-dashed ${
+      className={`flex-shrink-0 w-20 sticky right-0 z-20 rounded-xl flex flex-col items-center justify-center transition-all duration-150 border-2 border-dashed ${
         isDragOver
           ? "border-green-400 bg-green-900/30"
           : "border-green-700/50 bg-[#1a1a2e]/50"
