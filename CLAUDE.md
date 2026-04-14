@@ -15,39 +15,6 @@
 
 - API: https://taskflow.kenji-draemon.workers.dev
 
-## 開発コマンド
-
-```bash
-# バックエンド
-npm run dev          # wrangler dev (port 8787)
-npm test             # vitest run
-npm run typecheck    # tsc --noEmit
-
-# フロントエンド
-cd frontend && npm run dev      # next dev (port 5173)
-cd frontend && npm run build    # next build
-cd frontend && npm run preview  # opennextjs-cloudflare preview
-cd frontend && npm run deploy   # opennextjs-cloudflare deploy
-```
-
-## プロジェクト構成
-
-```
-src/                  # Hono API (Workers)
-  index.ts            # アプリエントリ
-  types.ts            # AppEnv型
-  middleware/          # auth, cors, error
-  routes/             # todos, projects
-  validators/         # Zodスキーマ
-  lib/                # DBヘルパー
-frontend/              # Next.js App Router (Cloudflare Workers)
-  app/                 # ページ (/, /tasks/[id], /projects, etc.)
-  components/          # UIコンポーネント
-  lib/                 # APIクライアント、hooks、型定義
-migrations/           # D1 SQL マイグレーション
-test/                 # Vitest テスト
-```
-
 ## コーディング規約
 
 - Conventional Commits + 日本語: `feat(scope): 説明`
