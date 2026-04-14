@@ -72,6 +72,7 @@ test/                 # Vitest テスト
 
 - CHECK制約の変更はALTER TABLEで不可。テーブル再作成（CREATE新→INSERT SELECT→DROP旧→RENAME）が必要
 - FK参照があるテーブルのDROPには `PRAGMA foreign_keys = OFF` が必要。`wrangler d1 execute --file` で一括実行すること（個別コマンドではセッションが分離される）
+- **重要**: `wrangler d1 migrations apply --remote` はリモートでPRAGMAが無効になりFKエラーになる場合がある。その場合は `wrangler d1 execute taskflow-db --remote --file <migration.sql>` で実行し、その後 `INSERT INTO d1_migrations (name) VALUES ('<migration_name>')` で手動マーク
 
 ## 環境変数
 
