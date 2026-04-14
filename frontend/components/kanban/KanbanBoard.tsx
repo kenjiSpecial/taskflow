@@ -13,6 +13,7 @@ const COLUMNS: TodoStatus[] = [
   "ready_for_code",
   "in_progress",
   "review",
+  "waiting",
   "ready_for_publish",
   "done",
 ];
@@ -54,6 +55,7 @@ function groupByProject(
       ready_for_code: [],
       in_progress: [],
       review: [],
+      waiting: [],
       ready_for_publish: [],
       done: [],
     };
@@ -77,6 +79,7 @@ function groupByProject(
     ready_for_code: [],
     in_progress: [],
     review: [],
+    waiting: [],
     ready_for_publish: [],
     done: [],
   };
@@ -205,6 +208,7 @@ export function KanbanBoard() {
       ready_for_code: [],
       in_progress: [],
       review: [],
+      waiting: [],
       ready_for_publish: [],
       done: [],
     };

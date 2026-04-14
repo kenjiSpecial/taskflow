@@ -10,6 +10,7 @@ const STATUS_BORDER_COLOR: Record<TodoStatus, string> = {
   ready_for_code: "border-l-cyan-400",
   in_progress: "border-l-amber-400",
   review: "border-l-purple-400",
+  waiting: "border-l-yellow-400",
   ready_for_publish: "border-l-orange-400",
   done: "border-l-green-400",
 };
