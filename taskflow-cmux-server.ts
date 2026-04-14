@@ -366,7 +366,17 @@ async function handleChat(
         const systemPrompt = buildSystemPrompt(chatReq.context);
 
         // Build messages from history or start fresh
-        const messages: Message[] = chatReq.history || [];
+        // Normalize history: pi-ai expects assistant content as block arrays, not plain strings
+        const rawHistory: Message[] = (chatReq.history || []).map((m: Message) => {
+          if (m.role === "assistant" && typeof m.content === "string") {
+            return {
+              ...m,
+              content: [{ type: "text", text: m.content }],
+            };
+          }
+          return m;
+        });
+        const messages: Message[] = rawHistory;
         messages.push({
           role: "user",
           content: chatReq.message,
