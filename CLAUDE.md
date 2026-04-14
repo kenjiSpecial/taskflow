@@ -57,7 +57,7 @@ test/                 # Vitest テスト
 - D1はプリペアドステートメント必須（SQLi防止）
 - 論理削除（`deleted_at`）、物理削除しない
 - タスク階層は2階層まで（親-子のみ）
-- タスクステータス: `backlog | todo | ready_for_code | in_progress | review | done`（6段階カンバンフロー。ready_for_code = AIコーディングエージェント着手可能）
+- タスクステータス: `backlog | todo | ready_for_code | in_progress | review | waiting | ready_for_publish | done`（8段階カンバンフロー。ready_for_code = AIコーディングエージェント着手可能、waiting = 外部ブロッカー待ち）
 - セッションステータス: `active | paused | done`
 - ログのsource: `human | ai`（UI経由=human、API直接/agent=ai）
 - APIはUTC保存、フロントでJST変換
