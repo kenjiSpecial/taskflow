@@ -22,6 +22,8 @@ const STATUSES: { value: TodoStatus; label: string }[] = [
   { value: "ready_for_code", label: "Ready for Code" },
   { value: "in_progress", label: "In Progress" },
   { value: "review", label: "Review" },
+  { value: "waiting", label: "Waiting" },
+  { value: "ready_for_publish", label: "Pending Publish" },
   { value: "done", label: "Done" },
 ];
 

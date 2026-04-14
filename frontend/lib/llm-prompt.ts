@@ -5,6 +5,7 @@ const STATUS_LABELS: Record<string, string> = {
   todo: "Todo",
   in_progress: "In Progress",
   review: "Review",
+  waiting: "Waiting",
   ready_for_publish: "Pending Publish",
   done: "Done",
   active: "Active",
