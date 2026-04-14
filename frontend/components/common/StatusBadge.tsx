@@ -23,6 +23,11 @@ const STATUS_CONFIG: Record<
     color: "text-purple-400",
     dotColor: "bg-purple-400",
   },
+  waiting: {
+    label: "Waiting",
+    color: "text-yellow-400",
+    dotColor: "bg-yellow-400",
+  },
   ready_for_publish: {
     label: "Pending Publish",
     color: "text-orange-400",
