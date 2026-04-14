@@ -9,7 +9,7 @@
 Bearer Token認証。リクエストヘッダーに `Authorization: Bearer <TOKEN>` を含める。
 
 ```bash
-export TODO_API_TOKEN="your-token-here"
+export API_TOKEN="your-token-here"
 ```
 
 ## Base URL
@@ -33,7 +33,7 @@ GET /api/todos?status=backlog&priority=high&project_id=xxx&sort=due_date&order=a
 ```
 
 パラメータ:
-- `status`: backlog | todo | ready_for_code | in_progress | review | done
+- `status`: backlog | todo | ready_for_code | in_progress | review | waiting | ready_for_publish | done
 - `priority`: high | medium | low
 - `project_id`: プロジェクトID
 - `sort`: due_date | priority | created_at | sort_order (default: sort_order)
@@ -221,15 +221,17 @@ Content-Type: application/json
 
 ## ステータス
 
-### タスク（6段階カンバンフロー）
+### タスク（8段階カンバンフロー）
 
-`backlog → todo → ready_for_code → in_progress → review → done`
+`backlog → todo → ready_for_code → in_progress → review → waiting → ready_for_publish → done`
 
 - `backlog`: 未整理・いつかやる
 - `todo`: 次やる
 - `ready_for_code`: 仕様確定済み、AIコーディングエージェントが着手可能
 - `in_progress`: 作業中
 - `review`: レビュー待ち
+- `waiting`: 外部ブロッカー待ち（レビュー・承認・依存解消など）
+- `ready_for_publish`: 実装完了、公開・リリース待ち
 - `done`: 完了
 
 ### セッション
@@ -240,23 +242,23 @@ Content-Type: application/json
 
 ```bash
 # 一覧取得
-curl -H "Authorization: Bearer $TODO_API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos
+curl -H "Authorization: Bearer $API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos
 
 # 作成
-curl -X POST -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
+curl -X POST -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application/json" \
   -d '{"title":"レポートを書く","priority":"high","due_date":"2026-03-01"}' \
   https://taskflow.kenji-draemon.workers.dev/api/todos
 
 # ステータス変更
-curl -X PATCH -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
+curl -X PATCH -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application/json" \
   -d '{"status":"done"}' \
   https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
 
 # タスクログ追加（AI経由）
-curl -X POST -H "Authorization: Bearer $TODO_API_TOKEN" -H "Content-Type: application/json" \
+curl -X POST -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application/json" \
   -d '{"content":"実装完了","source":"ai"}' \
   https://taskflow.kenji-draemon.workers.dev/api/todos/<id>/logs
 
 # 削除
-curl -X DELETE -H "Authorization: Bearer $TODO_API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
+curl -X DELETE -H "Authorization: Bearer $API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
 ```
