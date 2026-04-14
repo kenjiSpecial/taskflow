@@ -1,6 +1,6 @@
 procs:
   backend:
-    shell: wrangler dev --remote --port 8787
+    shell: npx wrangler dev --remote --port 8787
     cwd: /Users/saito_kenji/github/taskflow
 
   frontend:
@@ -10,8 +10,14 @@ procs:
       NEXT_PUBLIC_API_URL: http://localhost:8787
       NEXT_PUBLIC_API_TOKEN: ${TASKFLOW_API_TOKEN}
 
+  chat-bridge:
+    shell: bun run taskflow-cmux-server.ts
+    cwd: /Users/saito_kenji/github/taskflow
+    env:
+      TASKFLOW_API_TOKEN: ${TASKFLOW_API_TOKEN}
+
   tf-agent:
-    shell: bun run src/server.ts
+    shell: ~/.bun/bin/bun run src/server.ts
     cwd: /Users/saito_kenji/Projects/notahotel-lp-web-main/tools/tf-agent
     env:
       PORT: "4300"
