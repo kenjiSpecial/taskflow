@@ -3,6 +3,7 @@ import type { Todo, Project, WorkSession, SessionLog } from "@/lib/types";
 const STATUS_LABELS: Record<string, string> = {
   backlog: "Backlog",
   todo: "Todo",
+  ready_for_code: "Ready for Code",
   in_progress: "In Progress",
   review: "Review",
   waiting: "Waiting",

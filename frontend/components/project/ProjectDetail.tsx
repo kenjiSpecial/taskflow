@@ -14,6 +14,7 @@ import { generateProjectPrompt } from "@/lib/llm-prompt";
 const STATUS_ORDER: TodoStatus[] = [
   "in_progress",
   "review",
+  "ready_for_code",
   "waiting",
   "todo",
   "backlog",
