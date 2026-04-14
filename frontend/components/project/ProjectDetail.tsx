@@ -16,6 +16,7 @@ const STATUS_ORDER: TodoStatus[] = [
   "review",
   "ready_for_code",
   "waiting",
+  "ready_for_publish",
   "todo",
   "backlog",
   "done",
