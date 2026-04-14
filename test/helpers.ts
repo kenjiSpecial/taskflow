@@ -23,7 +23,7 @@ export async function applyMigrations() {
     "id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))))," +
     "title TEXT NOT NULL CHECK(length(title) <= 200)," +
     "description TEXT CHECK(length(description) <= 2000)," +
-    "status TEXT NOT NULL DEFAULT 'backlog' CHECK(status IN ('backlog', 'todo', 'in_progress', 'review', 'done'))," +
+    "status TEXT NOT NULL DEFAULT 'backlog' CHECK(status IN ('backlog', 'todo', 'ready_for_code', 'in_progress', 'review', 'waiting', 'ready_for_publish', 'done'))," +
     "priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('high', 'medium', 'low'))," +
     "due_date TEXT," +
     "project TEXT," +

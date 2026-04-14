@@ -93,6 +93,20 @@ describe("Todos CRUD", () => {
     expect(data.todo.status).toBe("review");
   });
 
+  it("TODO更新（waiting）", async () => {
+    const createRes = await createTodo({ title: "waitingステータステスト" });
+    const created = await createRes.json() as { todo: { id: string } };
+
+    const res = await SELF.fetch(`http://localhost/api/todos/${created.todo.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ status: "waiting" }),
+    });
+    expect(res.status).toBe(200);
+    const data = await res.json() as { todo: { status: string } };
+    expect(data.todo.status).toBe("waiting");
+  });
+
   it("done→backlogに戻すとdone_atがクリアされる", async () => {
     const createRes = await createTodo({ title: "done戻しテスト" });
     const created = await createRes.json() as { todo: { id: string } };
