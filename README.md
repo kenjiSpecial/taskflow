@@ -4,12 +4,12 @@
 
 ## 技術スタック
 
-| レイヤー | 技術 |
-|---------|------|
-| API | Hono on Cloudflare Workers |
-| DB | Cloudflare D1 (SQLite) |
-| Frontend | Preact SPA + @preact/signals |
-| CI/CD | GitHub Actions |
+- **API**: Hono on Cloudflare Workers
+- **DB**: Cloudflare D1 (SQLite)
+- **Frontend**: Next.js App Router + TanStack Query (Cloudflare Workers via @opennextjs/cloudflare)
+- **Auth**: Bearer Token
+- **Test**: Vitest + @cloudflare/vitest-pool-workers
+- **CI/CD**: GitHub Actions → main push で自動デプロイ
 
 ## セットアップ
 
@@ -21,32 +21,54 @@ npx wrangler d1 migrations apply taskflow-db --local
 npm run dev
 
 # フロントエンド
-cd frontend
-npm install
-cp .env.example .env  # VITE_API_TOKEN を設定
-npm run dev
+cd frontend && npm install
+cp .env.example .env.local  # NEXT_PUBLIC_API_TOKEN を設定
+cd frontend && npm run dev
 ```
 
 ブラウザで http://localhost:5173 を開く。
+
+## 開発コマンド
+
+```bash
+# バックエンド
+npm run dev          # wrangler dev (port 8787)
+npm test             # vitest run
+npm run typecheck    # tsc --noEmit
+
+# フロントエンド
+cd frontend && npm run dev      # next dev (port 5173)
+cd frontend && npm run build    # next build
+cd frontend && npm run preview  # opennextjs-cloudflare preview
+cd frontend && npm run deploy   # opennextjs-cloudflare deploy
+```
+
+## プロジェクト構成
+
+```
+src/                  # Hono API (Workers)
+  index.ts            # アプリエントリ
+  types.ts            # AppEnv型
+  middleware/          # auth, cors, error
+  routes/             # todos, projects
+  validators/         # Zodスキーマ
+  lib/                # DBヘルパー
+frontend/              # Next.js App Router (Cloudflare Workers)
+  app/                 # ページ (/, /tasks/[id], /projects, etc.)
+  components/          # UIコンポーネント
+  lib/                 # APIクライアント、hooks、型定義
+migrations/           # D1 SQL マイグレーション
+test/                 # Vitest テスト
+```
 
 ## デプロイ
 
 `main` ブランチにpushすると GitHub Actions で自動デプロイ。
 
 - API → Cloudflare Workers
-- Frontend → Cloudflare Pages
+- Frontend → Cloudflare Workers (@opennextjs/cloudflare)
 
-## API
+## 関連ドキュメント
 
-詳細は [AGENTS.md](AGENTS.md) を参照。
-
-```bash
-GET    /health                 ヘルスチェック
-GET    /api/todos              一覧（フィルタ・ソート対応）
-GET    /api/todos/:id          詳細（子タスク含む）
-POST   /api/todos              作成
-PATCH  /api/todos/:id          更新
-DELETE /api/todos/:id          論理削除
-GET    /api/todos/today        今日のTODO
-GET    /api/projects           プロジェクト一覧
-```
+- [API仕様](AGENTS.md)
+- [開発ガイド (AI向け)](CLAUDE.md)
