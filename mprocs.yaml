@@ -11,7 +11,7 @@ procs:
       NEXT_PUBLIC_API_TOKEN: ${TASKFLOW_API_TOKEN}
 
   chat-bridge:
-    shell: bun run taskflow-cmux-server.ts
+    shell: ~/.bun/bin/bun run taskflow-cmux-server.ts
     cwd: /Users/saito_kenji/github/taskflow
     env:
       TASKFLOW_API_TOKEN: ${TASKFLOW_API_TOKEN}
