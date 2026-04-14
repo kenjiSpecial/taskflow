@@ -11,6 +11,10 @@
 - **Test**: Vitest + @cloudflare/vitest-pool-workers
 - **CI/CD**: GitHub Actions → main push で自動デプロイ
 
+## URLs
+
+- API: https://taskflow.kenji-draemon.workers.dev
+
 ## セットアップ
 
 ```bash
