@@ -145,10 +145,10 @@ export function detachClient(
   }
 }
 
-function sendToProc(session: PtySession, msg: object): void {
+async function sendToProc(session: PtySession, msg: object): Promise<void> {
   try {
     session.proc.stdin.write(JSON.stringify(msg) + "\n");
-    session.proc.stdin.flush();
+    await session.proc.stdin.flush();
   } catch {
     // ignore if proc is dead
   }
