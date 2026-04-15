@@ -4,6 +4,14 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import {
+  getOrCreateSession,
+  attachClient,
+  detachClient,
+  writeInput,
+  resizePty,
+  destroyAllSessions,
+} from "./pty-manager";
+import {
   getModel,
   stream as piStream,
   validateToolCall,
@@ -812,7 +820,71 @@ const server = Bun.serve({
       }
     }
 
+    // WebSocket upgrade: /ws/terminal/:todoId
+    if (url.pathname.startsWith("/ws/terminal/")) {
+      const todoId = url.pathname.split("/")[3];
+      if (!todoId || !UUID_RE.test(todoId)) {
+        return new Response("Invalid todoId", { status: 400 });
+      }
+      const isOriginAllowed = !origin || ALLOWED_ORIGINS.includes(origin);
+      if (!isOriginAllowed) {
+        return new Response("Forbidden", { status: 403 });
+      }
+      const upgraded = server.upgrade(req, { data: { todoId } });
+      if (!upgraded) {
+        return new Response("WebSocket upgrade failed", { status: 500 });
+      }
+      return undefined as unknown as Response;
+    }
+
     return jsonResponse({ ok: false, message: "Not found" }, 404, origin);
+  },
+
+  websocket: {
+    async open(ws) {
+      const { todoId } = ws.data as { todoId: string };
+      try {
+        // ワークスペース情報からCWDを取得
+        const config = loadAgentConfig();
+        let cwd = homedir();
+        try {
+          const res = await fetch(`http://localhost:8787/api/todos/${todoId}/workspace`, {
+            headers: { Authorization: `Bearer ${config.apiToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json() as { workspace?: { paths?: { path: string }[] } };
+            const firstPath = data.workspace?.paths?.[0]?.path;
+            if (firstPath) cwd = firstPath;
+          }
+        } catch {
+          // APIが落ちている場合はhomeにフォールバック
+        }
+        const session = getOrCreateSession(todoId, cwd);
+        attachClient(todoId, ws, session);
+      } catch (err) {
+        ws.send(JSON.stringify({ type: "error", message: String(err) }));
+        ws.close();
+      }
+    },
+
+    message(ws, message) {
+      const { todoId } = ws.data as { todoId: string };
+      try {
+        const msg = JSON.parse(typeof message === "string" ? message : new TextDecoder().decode(message as BufferSource)) as { type: string; data?: string; cols?: number; rows?: number };
+        if (msg.type === "input" && typeof msg.data === "string") {
+          writeInput(todoId, msg.data);
+        } else if (msg.type === "resize" && msg.cols && msg.rows) {
+          resizePty(todoId, msg.cols, msg.rows);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    },
+
+    close(ws) {
+      const { todoId } = ws.data as { todoId: string };
+      detachClient(todoId, ws);
+    },
   },
 
   error(error) {
@@ -827,3 +899,7 @@ const server = Bun.serve({
 console.log(
   `cmux bridge server listening on ${protocol}://${HOSTNAME}:${PORT}`,
 );
+
+process.on("exit", destroyAllSessions);
+process.on("SIGINT", () => { destroyAllSessions(); process.exit(0); });
+process.on("SIGTERM", () => { destroyAllSessions(); process.exit(0); });
