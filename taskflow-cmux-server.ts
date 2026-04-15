@@ -843,6 +843,7 @@ const server = Bun.serve({
   websocket: {
     async open(ws) {
       const { todoId } = ws.data as { todoId: string };
+      console.log(`[ws] open todoId=${todoId}`);
       try {
         // ワークスペース情報からCWDを取得
         const config = loadAgentConfig();
@@ -856,12 +857,14 @@ const server = Bun.serve({
             const firstPath = data.workspace?.paths?.[0]?.path;
             if (firstPath) cwd = firstPath;
           }
-        } catch {
-          // APIが落ちている場合はhomeにフォールバック
+        } catch (e) {
+          console.warn(`[ws] workspace fetch失敗 (fallback $HOME):`, String(e));
         }
         const session = getOrCreateSession(todoId, cwd);
         attachClient(todoId, ws, session);
+        console.log(`[ws] attached todoId=${todoId} pid=${session.proc.pid} cwd=${session.cwd}`);
       } catch (err) {
+        console.error(`[ws] open error todoId=${todoId}:`, err);
         ws.send(JSON.stringify({ type: "error", message: String(err) }));
         ws.close();
       }

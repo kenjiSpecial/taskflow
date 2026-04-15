@@ -1,10 +1,20 @@
 import type { ServerWebSocket } from "bun";
 import { join } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 
 // node は PATH にあることを前提とする
 const NODE_BIN = process.execPath.includes("bun")
   ? Bun.which("node") ?? "node"
   : process.execPath;
+
+function resolveCwd(cwd: string): string {
+  try {
+    if (cwd && existsSync(cwd) && statSync(cwd).isDirectory()) return cwd;
+  } catch { /* ignore */ }
+  console.warn(`[pty] cwd "${cwd}" が無効なため $HOME にフォールバック`);
+  return homedir();
+}
 
 const PTY_SERVER_SCRIPT = join(import.meta.dir, "pty-server.cjs");
 const SESSION_IDLE_MS = 5 * 60 * 1000; // 5分
@@ -96,16 +106,33 @@ export function getOrCreateSession(todoId: string, cwd: string): PtySession {
     return existing;
   }
 
-  const proc = Bun.spawn([NODE_BIN, PTY_SERVER_SCRIPT, cwd], {
+  const resolvedCwd = resolveCwd(cwd);
+  console.log(`[pty] spawn todoId=${todoId} cwd=${resolvedCwd} node=${NODE_BIN}`);
+
+  const proc = Bun.spawn([NODE_BIN, PTY_SERVER_SCRIPT, resolvedCwd], {
     stdout: "pipe",
     stdin: "pipe",
-    stderr: "ignore",
+    stderr: "pipe",
     env: { ...process.env },
+  });
+
+  // stderr を吸い上げてログに流す
+  (async () => {
+    const dec = new TextDecoder();
+    try {
+      for await (const chunk of proc.stderr as AsyncIterable<Uint8Array>) {
+        console.error(`[pty-server ${todoId.slice(0, 8)}] ${dec.decode(chunk)}`);
+      }
+    } catch { /* ignore */ }
+  })();
+
+  proc.exited.then((code) => {
+    console.log(`[pty] exited todoId=${todoId} code=${code}`);
   });
 
   const session: PtySession = {
     todoId,
-    cwd,
+    cwd: resolvedCwd,
     proc,
     scrollback: "",
     clients: new Set(),
