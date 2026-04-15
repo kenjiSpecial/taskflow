@@ -58,11 +58,21 @@ function appendScrollback(session: PtySession, data: string): void {
 function startReadLoop(session: PtySession): void {
   const proc = session.proc;
   let buf = "";
+  const tag = session.todoId.slice(0, 8);
 
   (async () => {
+    console.log(`[pty ${tag}] readLoop start`);
     try {
-      for await (const chunk of proc.stdout as AsyncIterable<Uint8Array>) {
-        buf += new TextDecoder().decode(chunk);
+      const reader = (proc.stdout as ReadableStream<Uint8Array>).getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          console.log(`[pty ${tag}] stdout closed (done)`);
+          break;
+        }
+        buf += decoder.decode(value, { stream: true });
+        console.log(`[pty ${tag}] chunk ${value.byteLength}bytes buf=${buf.length}`);
         const parts = buf.split("\n");
         buf = parts.pop() ?? "";
         for (const line of parts) {
@@ -76,23 +86,28 @@ function startReadLoop(session: PtySession): void {
             };
             if (msg.type === "output" && typeof msg.data === "string") {
               appendScrollback(session, msg.data);
-              broadcast(session, JSON.stringify({ type: "output", data: msg.data }));
+              const payload = JSON.stringify({ type: "output", data: msg.data });
+              console.log(`[pty ${tag}] broadcast output ${msg.data.length}chars to ${session.clients.size}clients`);
+              broadcast(session, payload);
             } else if (msg.type === "exit") {
+              console.log(`[pty ${tag}] got exit code=${msg.code}`);
               broadcast(session, JSON.stringify({ type: "exit", code: msg.code ?? 0 }));
               sessions.delete(session.todoId);
             } else if (msg.type === "error") {
+              console.error(`[pty ${tag}] got error: ${msg.message}`);
               broadcast(session, JSON.stringify({ type: "error", message: msg.message }));
               sessions.delete(session.todoId);
             }
-          } catch {
-            // ignore parse errors
+          } catch (e) {
+            console.warn(`[pty ${tag}] parse error: ${String(e)} line=${line.slice(0, 80)}`);
           }
         }
       }
-    } catch {
-      // stdout closed — session ended
+    } catch (e) {
+      console.error(`[pty ${tag}] readLoop error:`, e);
       sessions.delete(session.todoId);
     }
+    console.log(`[pty ${tag}] readLoop end`);
   })();
 }
 
@@ -151,6 +166,8 @@ export function attachClient(
   session: PtySession,
 ): void {
   session.clients.add(ws);
+  const tag = todoId.slice(0, 8);
+  console.log(`[pty ${tag}] attach client, now ${session.clients.size}clients, scrollback=${session.scrollback.length}chars`);
   ws.send(JSON.stringify({ type: "ready", pid: session.proc.pid }));
   if (session.scrollback) {
     ws.send(JSON.stringify({ type: "output", data: session.scrollback }));
