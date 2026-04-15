@@ -8,6 +8,7 @@ import {
   useDeleteWorkspace,
 } from "@/lib/hooks/useWorkspace";
 import type { WorkspacePath } from "@/lib/types";
+import { TerminalPanel } from "./TerminalPanel";
 
 function PathIcon({ source }: { source: "ai" | "human" }) {
   return (
@@ -163,6 +164,8 @@ export function WorkspaceSection({ todoId }: { todoId: string }) {
       <AddPathForm
         onAdd={(path) => addPath.mutate({ path, source: "human" })}
       />
+
+      <TerminalPanel todoId={todoId} />
     </div>
   );
 }
