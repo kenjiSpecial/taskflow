@@ -9,6 +9,7 @@ import { StatusDot } from "@/components/common/StatusBadge";
 import { PriorityBadge } from "@/components/common/PriorityBadge";
 import { LLMCopyButton } from "@/components/common/LLMCopyButton";
 import { SubTaskList } from "./SubTaskList";
+import { WorkspaceSection } from "./WorkspaceSection";
 import { useUpdateTodo, useTodoLogs, useAddTodoLog } from "@/lib/hooks/useTodos";
 import { generateTaskPrompt } from "@/lib/llm-prompt";
 import { fetchTodoSessions } from "@/lib/api";
@@ -316,6 +317,9 @@ export function TaskDetail({ todo }: { todo: Todo }) {
           <LLMCopyButton generatePrompt={handleGeneratePrompt} />
         </div>
       </div>
+
+      {/* Workspace */}
+      <WorkspaceSection todoId={todo.id} />
 
       {/* Properties */}
       <div className="grid grid-cols-2 gap-4 bg-[#1a1a2e] rounded-lg p-4">
