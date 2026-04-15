@@ -10,6 +10,12 @@ export async function applyMigrations() {
     "0004_create_projects.sql",
     "0005_create_tags.sql",
     "0006_add_project_directory_path.sql",
+    "0007_create_chat.sql",
+    "0008_update_todo_status.sql",
+    "0009_create_todo_logs_and_update_source.sql",
+    "0010_add_ready_for_code_status.sql",
+    "0011_add_ready_for_publish_status.sql",
+    "0012_add_waiting_status.sql",
   ];
 
   for (const file of migrationFiles) {
