@@ -39,14 +39,16 @@ export function registerWorkspaceRoutes(app: Hono<AppEnv>) {
     }
 
     const ts = now();
+    // 論理削除済みを含む全レコードを検索（inline UNIQUE制約はdeleted_atに関わらず適用されるため）
     const existing = await c.env.DB.prepare(
-      "SELECT * FROM workspaces WHERE todo_id = ? AND deleted_at IS NULL",
+      "SELECT * FROM workspaces WHERE todo_id = ?",
     ).bind(id).first<WorkspaceRow>();
 
     let workspace: WorkspaceRow | null;
     if (existing) {
+      // 既存レコードをUPDATE（削除済みの場合はdeleted_atをクリアして復元）
       workspace = await c.env.DB.prepare(
-        "UPDATE workspaces SET zellij_session = ?, updated_at = ? WHERE id = ? RETURNING *",
+        "UPDATE workspaces SET zellij_session = ?, updated_at = ?, deleted_at = NULL WHERE id = ? RETURNING *",
       ).bind(data.zellij_session ?? null, ts, existing.id).first<WorkspaceRow>();
     } else {
       workspace = await c.env.DB.prepare(
