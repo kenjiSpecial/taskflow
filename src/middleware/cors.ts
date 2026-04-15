@@ -9,6 +9,6 @@ const ALLOWED_ORIGINS = [
 
 export const corsMiddleware = cors({
   origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ""),
-  allowMethods: ["GET", "POST", "PATCH", "DELETE"],
+  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowHeaders: ["Content-Type", "Authorization", "X-Client-Id"],
 });
