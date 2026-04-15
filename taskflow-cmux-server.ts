@@ -46,7 +46,21 @@ const AVAILABLE_MODELS = [
   "google/gemini-3-flash-preview",
   "anthropic/claude-sonnet-4.6",
   "moonshotai/kimi-k2.5",
+  "zai/glm-5.1",
+  "zai/glm-5",
+  "zai/glm-4.5",
 ];
+
+// モデルIDからプロバイダーとモデル名を解決する
+// "zai/glm-5.1" → { provider: "zai", modelId: "glm-5.1" }
+// "minimax/minimax-m2.7" → { provider: "openrouter", modelId: "minimax/minimax-m2.7" }
+function resolveModel(modelStr: string): { provider: string; modelId: string } {
+  const [prefix, ...rest] = modelStr.split("/");
+  if (prefix === "zai" && rest.length > 0) {
+    return { provider: "zai", modelId: rest.join("/") };
+  }
+  return { provider: "openrouter", modelId: modelStr };
+}
 const MAX_AGENT_STEPS = 10;
 const AGENT_TIMEOUT_MS = 60_000;
 
@@ -126,6 +140,7 @@ interface AgentConfig {
   apiUrl: string;
   apiToken: string;
   openrouterApiKey: string;
+  zaiApiKey: string;
   chatModel: string;
 }
 
@@ -147,13 +162,19 @@ function loadAgentConfig(): AgentConfig {
       process.env.TASKFLOW_API_URL ||
       (fileConfig.api_url as string) ||
       DEFAULT_API_URL,
-    apiToken:
-      process.env.TASKFLOW_API_TOKEN ||
-      (fileConfig.api_token as string) ||
-      "",
+    apiToken: (() => {
+      const envToken = process.env.TASKFLOW_API_TOKEN ?? "";
+      // mprocsが${...}を展開せずそのまま渡す場合があるため除外
+      const resolvedEnvToken = envToken.startsWith("${") ? "" : envToken;
+      return resolvedEnvToken || (fileConfig.api_token as string) || "";
+    })(),
     openrouterApiKey:
       process.env.OPENROUTER_API_KEY ||
       (fileConfig.openrouter_api_key as string) ||
+      "",
+    zaiApiKey:
+      process.env.ZAI_API_KEY ||
+      (fileConfig.zai_api_key as string) ||
       "",
     chatModel:
       runtimeModel ||
@@ -261,9 +282,9 @@ function buildSystemPrompt(viewContext?: ViewContext): string {
 - ready_for_publish: 実装完了、公開待ち
 - done: 完了
 
-## タスク参照
-ユーザーのメッセージに `[タスク: タイトル (ID: xxx)]` が含まれる場合、そのタスクを操作対象として認識する。
-IDを使って get_todo や update_todo を直接呼び出せる。確認なしにそのタスクに対して操作してよい。
+## 参照形式
+- \`[タスク: タイトル (ID: xxx)]\` — そのタスクを操作対象として認識する。IDを使って get_todo や update_todo を直接呼び出せる。確認なしに操作してよい。
+- \`[プロジェクト: 名前 (ID: xxx)]\` — そのプロジェクトを操作対象として認識する。IDを使って get_project や get_todos (project_id フィルタ) を直接呼び出せる。
 
 ## 基本ルール
 - 操作前にツールで現状を確認する
@@ -334,9 +355,16 @@ async function handleChat(
 ): Promise<Response> {
   const config = loadAgentConfig();
 
-  if (!config.openrouterApiKey) {
+  const { provider: chatProvider } = resolveModel(config.chatModel);
+  if (chatProvider === "openrouter" && !config.openrouterApiKey) {
     return Response.json(
       { ok: false, message: "OpenRouter APIキーが設定されていません" },
+      { status: 500, headers: corsHeaders(origin) },
+    );
+  }
+  if (chatProvider === "zai" && !config.zaiApiKey) {
+    return Response.json(
+      { ok: false, message: "z.ai APIキーが設定されていません（~/.taskflow-cmux/config.jsonのzai_api_keyを設定してください）" },
       { status: 500, headers: corsHeaders(origin) },
     );
   }
@@ -368,7 +396,8 @@ async function handleChat(
     type: "direct",
     async pull(controller) {
       try {
-        const model = getModel("openrouter", config.chatModel as "auto");
+        const { provider: modelProvider, modelId } = resolveModel(config.chatModel);
+        const model = getModel(modelProvider, modelId as "auto");
         const systemPrompt = buildSystemPrompt(chatReq.context);
 
         // Build messages from history or start fresh
@@ -406,8 +435,9 @@ async function handleChat(
 
           let lastResult;
           try {
+            const apiKey = modelProvider === "zai" ? config.zaiApiKey : config.openrouterApiKey;
             const s = piStream(model, context, {
-              apiKey: config.openrouterApiKey,
+              apiKey,
               signal: abortController.signal,
               maxTokens: 16384,
               reasoningEffort: "low",
