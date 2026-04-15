@@ -189,3 +189,32 @@ export interface ReorderItem {
   sort_order: number;
   parent_id?: string | null;
 }
+
+// --- Workspace ---
+
+export interface WorkspacePath {
+  id: string;
+  workspace_id: string;
+  path: string;
+  source: "ai" | "human";
+  created_at: string;
+}
+
+export interface Workspace {
+  id: string;
+  todo_id: string;
+  zellij_session: string | null;
+  paths: WorkspacePath[];
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type UpsertWorkspaceInput = {
+  zellij_session?: string | null;
+};
+
+export type CreateWorkspacePathInput = {
+  path: string;
+  source: "ai" | "human";
+};

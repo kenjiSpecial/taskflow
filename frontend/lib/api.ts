@@ -22,6 +22,10 @@ import type {
   ChatConversation,
   ChatMessageRecord,
   CreateChatMessageInput,
+  Workspace,
+  UpsertWorkspaceInput,
+  CreateWorkspacePathInput,
+  WorkspacePath,
 } from "./types";
 
 // --- API Client ---
@@ -346,5 +350,44 @@ export async function addChatMessage(
   return request(`/api/chat/conversations/${conversationId}/messages`, {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+// --- Workspace API ---
+
+export async function fetchWorkspace(todoId: string): Promise<{ workspace: Workspace }> {
+  return request(`/api/todos/${todoId}/workspace`);
+}
+
+export async function upsertWorkspace(
+  todoId: string,
+  input: UpsertWorkspaceInput,
+): Promise<{ workspace: Workspace }> {
+  return request(`/api/todos/${todoId}/workspace`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteWorkspace(todoId: string): Promise<{ success: boolean }> {
+  return request(`/api/todos/${todoId}/workspace`, { method: "DELETE" });
+}
+
+export async function addWorkspacePath(
+  todoId: string,
+  input: CreateWorkspacePathInput,
+): Promise<{ path: WorkspacePath }> {
+  return request(`/api/todos/${todoId}/workspace/paths`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteWorkspacePath(
+  todoId: string,
+  pathId: string,
+): Promise<{ success: boolean }> {
+  return request(`/api/todos/${todoId}/workspace/paths/${pathId}`, {
+    method: "DELETE",
   });
 }
