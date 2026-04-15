@@ -120,23 +120,32 @@ export function useTerminal({
     if (!enabled) return;
     mountedRef.current = true;
 
+    // Per-effect abort flag: StrictMode で前の effect が cleanup された後に
+    // この IIFE が import 終了してもリソースを作らない
+    let aborted = false;
+
     let terminal: import("@xterm/xterm").Terminal;
     let fitAddon: import("@xterm/addon-fit").FitAddon;
     let resizeObserver: ResizeObserver;
 
     (async () => {
-      if (!containerRef.current || !mountedRef.current) return;
+      if (aborted || !containerRef.current || !mountedRef.current) return;
 
       // xterm.js は動的インポート（SSR回避）。CSS は TerminalPanel.tsx で静的 import 済み
       const { Terminal } = await import("@xterm/xterm");
       const { FitAddon } = await import("@xterm/addon-fit");
 
-      if (!mountedRef.current || !containerRef.current) return;
+      if (aborted || !mountedRef.current || !containerRef.current) return;
 
       // StrictMode の二重 mount 対策: 既存インスタンスがあれば破棄してから再作成
       if (termRef.current) {
         try { termRef.current.dispose(); } catch { /* ignore */ }
         termRef.current = null;
+      }
+      // 既存のWebSocketもクローズ（StrictMode で前 effect が残している可能性）
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch { /* ignore */ }
+        wsRef.current = null;
       }
       // containerRef.current の中身も一旦クリア（前回 open した DOM 残骸を除去）
       while (containerRef.current.firstChild) {
@@ -192,6 +201,7 @@ export function useTerminal({
     })();
 
     return () => {
+      aborted = true;
       mountedRef.current = false;
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       wsRef.current?.close();
