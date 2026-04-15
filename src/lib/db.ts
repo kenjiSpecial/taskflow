@@ -122,3 +122,20 @@ export async function tagExists(db: D1Database, tagId: string): Promise<boolean>
   ).bind(tagId).first();
   return row !== null;
 }
+
+export interface WorkspaceRow {
+  id: string;
+  todo_id: string;
+  zellij_session: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface WorkspacePathRow {
+  id: string;
+  workspace_id: string;
+  path: string;
+  source: "ai" | "human";
+  created_at: string;
+}
