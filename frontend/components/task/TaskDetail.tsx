@@ -14,7 +14,15 @@ import { generateTaskPrompt } from "@/lib/llm-prompt";
 import { fetchTodoSessions } from "@/lib/api";
 import type { Todo, TodoStatus, TodoLog } from "@/lib/types";
 
-marked.use({ breaks: true, async: false });
+marked.use({
+  breaks: true,
+  async: false,
+  renderer: {
+    link({ href, text }) {
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    },
+  },
+});
 
 const STATUSES: { value: TodoStatus; label: string }[] = [
   { value: "backlog", label: "Backlog" },
@@ -99,7 +107,7 @@ function InlineText({
         if (draft !== value) onSave(draft);
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && e.metaKey) {
           setEditing(false);
           if (draft !== value) onSave(draft);
         }
@@ -109,6 +117,88 @@ function InlineText({
         }
       }}
       className={`${className} w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:border-blue-500`}
+    />
+  );
+}
+
+// --- Inline Markdown ---
+
+function InlineMarkdown({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const html = useMemo(() => {
+    if (!value) return "";
+    const raw = marked.parse(value) as string;
+    return DOMPurify.sanitize(raw);
+  }, [value]);
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // リンククリック時は編集モードに入らずリンク遷移を優先
+      if ((e.target as HTMLElement).closest("a")) return;
+      setDraft(value);
+      setEditing(true);
+    },
+    [value],
+  );
+
+  const textareaRef = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.max(el.scrollHeight, 80)}px`;
+      el.focus();
+    }
+  }, []);
+
+  if (!editing) {
+    return (
+      <div
+        className="cursor-pointer hover:bg-gray-800/50 rounded px-1 -mx-1 transition-colors min-h-[1.5rem]"
+        onClick={handleClick}
+      >
+        {value ? (
+          <div
+            className="text-sm text-gray-400 markdown-body max-w-none"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        ) : (
+          <span className="text-sm text-gray-600 italic">クリックして編集</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        e.target.style.height = "auto";
+        e.target.style.height = `${e.target.scrollHeight}px`;
+      }}
+      onBlur={() => {
+        setEditing(false);
+        if (draft !== value) onSave(draft);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.metaKey) {
+          setEditing(false);
+          if (draft !== value) onSave(draft);
+        }
+        if (e.key === "Escape") {
+          setEditing(false);
+          setDraft(value);
+        }
+      }}
+      className="text-sm text-gray-400 w-full bg-gray-800 border border-gray-600 rounded px-2 py-3 focus:outline-none focus:border-blue-500 resize-vertical"
     />
   );
 }
@@ -136,7 +226,7 @@ function LogEntry({ log }: { log: TodoLog }) {
       </div>
       <div className="flex-1 min-w-0">
         <div
-          className="text-sm text-gray-200 prose prose-invert prose-sm max-w-none"
+          className="text-sm text-gray-200 markdown-body max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
         />
         <div className="text-[11px] text-gray-500 mt-1">
@@ -218,11 +308,9 @@ export function TaskDetail({ todo }: { todo: Todo }) {
           className="text-xl font-bold text-gray-100"
           as="h2"
         />
-        <InlineText
+        <InlineMarkdown
           value={todo.description ?? ""}
           onSave={(v) => updateTodo.mutate({ id: todo.id, input: { description: v || undefined } })}
-          className="text-sm text-gray-400 whitespace-pre-wrap"
-          as="p"
         />
         <div className="flex items-center gap-2">
           <LLMCopyButton generatePrompt={handleGeneratePrompt} />
