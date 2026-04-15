@@ -845,12 +845,15 @@ const server = Bun.serve({
       const { todoId } = ws.data as { todoId: string };
       console.log(`[ws] open todoId=${todoId}`);
       try {
-        // ワークスペース情報からCWDを取得
+        // ワークスペース情報からCWDを取得（1.5秒タイムアウトで必ずPTY生成に進む）
         const config = loadAgentConfig();
         let cwd = homedir();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1500);
         try {
           const res = await fetch(`http://localhost:8787/api/todos/${todoId}/workspace`, {
             headers: { Authorization: `Bearer ${config.apiToken}` },
+            signal: controller.signal,
           });
           if (res.ok) {
             const data = await res.json() as { workspace?: { paths?: { path: string }[] } };
@@ -859,6 +862,8 @@ const server = Bun.serve({
           }
         } catch (e) {
           console.warn(`[ws] workspace fetch失敗 (fallback $HOME):`, String(e));
+        } finally {
+          clearTimeout(timeout);
         }
         const session = getOrCreateSession(todoId, cwd);
         attachClient(todoId, ws, session);

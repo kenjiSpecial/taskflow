@@ -28,26 +28,36 @@ export function useTerminal({
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(false);
+  const isReadyRef = useRef(false);
+  const pendingMessagesRef = useRef<string[]>([]);
 
   const connect = useCallback(async () => {
     if (!mountedRef.current || !containerRef.current || !termRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     setIsConnecting(true);
+    isReadyRef.current = false;
+    pendingMessagesRef.current = [];
     const url = `${BRIDGE_WS_BASE}/ws/terminal/${todoId}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
+    const sendOrQueue = (payload: string) => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      if (!isReadyRef.current) {
+        pendingMessagesRef.current.push(payload);
+        return;
+      }
+      ws.send(payload);
+    };
+
     ws.onopen = () => {
       if (!mountedRef.current) { ws.close(); return; }
-      setIsConnected(true);
-      setIsConnecting(false);
-      retryCountRef.current = 0;
-      // 現在のターミナルサイズを送信
+      // readyはサーバのready受信時に確定。先にresizeをキューに積んでおく
       if (fitAddonRef.current && termRef.current) {
         fitAddonRef.current.fit();
         const { cols, rows } = termRef.current;
-        ws.send(JSON.stringify({ type: "resize", cols, rows }));
+        sendOrQueue(JSON.stringify({ type: "resize", cols, rows }));
       }
     };
 
@@ -60,9 +70,18 @@ export function useTerminal({
           code?: number;
           message?: string;
         };
-        if (msg.type === "output" && msg.data && termRef.current) {
+        if (msg.type === "ready") {
+          isReadyRef.current = true;
+          setIsConnected(true);
+          setIsConnecting(false);
+          retryCountRef.current = 0;
+          // 溜まっていた送信を吐き出す
+          for (const payload of pendingMessagesRef.current) ws.send(payload);
+          pendingMessagesRef.current = [];
+        } else if (msg.type === "output" && msg.data && termRef.current) {
           termRef.current.write(msg.data);
         } else if (msg.type === "exit") {
+          isReadyRef.current = false;
           setIsConnected(false);
         } else if (msg.type === "error") {
           termRef.current?.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
@@ -72,6 +91,8 @@ export function useTerminal({
 
     ws.onclose = () => {
       if (!mountedRef.current) return;
+      isReadyRef.current = false;
+      pendingMessagesRef.current = [];
       setIsConnected(false);
       setIsConnecting(false);
       // 自動再接続（最大3回）
@@ -127,21 +148,27 @@ export function useTerminal({
       termRef.current = terminal;
       fitAddonRef.current = fitAddon;
 
-      // ターミナル入力 → WebSocket
-      terminal.onData((data) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "input", data }));
+      const sendOrQueuePersistent = (payload: string) => {
+        const ws = wsRef.current;
+        if (ws?.readyState !== WebSocket.OPEN) return;
+        if (!isReadyRef.current) {
+          pendingMessagesRef.current.push(payload);
+          return;
         }
+        ws.send(payload);
+      };
+
+      // ターミナル入力 → WebSocket（ready前はキュー）
+      terminal.onData((data) => {
+        sendOrQueuePersistent(JSON.stringify({ type: "input", data }));
       });
 
-      // コンテナリサイズ → ターミナルリサイズ
+      // コンテナリサイズ → ターミナルリサイズ（ready前はキュー）
       resizeObserver = new ResizeObserver(() => {
         if (!fitAddonRef.current || !termRef.current) return;
         fitAddonRef.current.fit();
         const { cols, rows } = termRef.current;
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "resize", cols, rows }));
-        }
+        sendOrQueuePersistent(JSON.stringify({ type: "resize", cols, rows }));
       });
       resizeObserver.observe(containerRef.current);
 
@@ -153,6 +180,8 @@ export function useTerminal({
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       wsRef.current?.close();
       wsRef.current = null;
+      isReadyRef.current = false;
+      pendingMessagesRef.current = [];
       resizeObserver?.disconnect();
       termRef.current?.dispose();
       termRef.current = null;
