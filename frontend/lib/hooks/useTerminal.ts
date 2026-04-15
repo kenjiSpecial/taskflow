@@ -70,6 +70,7 @@ export function useTerminal({
           code?: number;
           message?: string;
         };
+        console.log("[term]", msg.type, msg.type === "output" ? `${msg.data?.length ?? 0}chars term=${!!termRef.current}` : "");
         if (msg.type === "ready") {
           isReadyRef.current = true;
           setIsConnected(true);
@@ -78,15 +79,21 @@ export function useTerminal({
           // 溜まっていた送信を吐き出す
           for (const payload of pendingMessagesRef.current) ws.send(payload);
           pendingMessagesRef.current = [];
-        } else if (msg.type === "output" && msg.data && termRef.current) {
-          termRef.current.write(msg.data);
+        } else if (msg.type === "output" && msg.data) {
+          if (termRef.current) {
+            termRef.current.write(msg.data);
+          } else {
+            console.warn("[term] output received but termRef.current is null");
+          }
         } else if (msg.type === "exit") {
           isReadyRef.current = false;
           setIsConnected(false);
         } else if (msg.type === "error") {
           termRef.current?.write(`\r\n\x1b[31m[error: ${msg.message}]\x1b[0m\r\n`);
         }
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error("[term] onmessage error:", e);
+      }
     };
 
     ws.onclose = () => {
@@ -120,12 +127,21 @@ export function useTerminal({
     (async () => {
       if (!containerRef.current || !mountedRef.current) return;
 
-      // xterm.js は動的インポート（SSR回避）
+      // xterm.js は動的インポート（SSR回避）。CSS は TerminalPanel.tsx で静的 import 済み
       const { Terminal } = await import("@xterm/xterm");
       const { FitAddon } = await import("@xterm/addon-fit");
-      await import("@xterm/xterm/css/xterm.css");
 
       if (!mountedRef.current || !containerRef.current) return;
+
+      // StrictMode の二重 mount 対策: 既存インスタンスがあれば破棄してから再作成
+      if (termRef.current) {
+        try { termRef.current.dispose(); } catch { /* ignore */ }
+        termRef.current = null;
+      }
+      // containerRef.current の中身も一旦クリア（前回 open した DOM 残骸を除去）
+      while (containerRef.current.firstChild) {
+        containerRef.current.removeChild(containerRef.current.firstChild);
+      }
 
       terminal = new Terminal({
         theme: {

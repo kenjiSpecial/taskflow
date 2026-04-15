@@ -1,5 +1,6 @@
 "use client";
 import { useRef } from "react";
+import "@xterm/xterm/css/xterm.css";
 import { useTerminal } from "@/lib/hooks/useTerminal";
 
 interface TerminalPanelProps {
