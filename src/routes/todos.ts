@@ -5,6 +5,7 @@ import { now, projectExists, tagExists } from "../lib/db";
 import { createTodoSchema, updateTodoSchema, listTodosQuery, reorderTodosSchema, createTodoLogSchema, listTodoLogsQuery } from "../validators/todo";
 import { tagLinkSchema } from "../validators/tag";
 import { getOriginClientId, publishRealtimeInvalidation } from "../realtime/publish";
+import workspace from "./workspace";
 
 const app = new Hono<AppEnv>();
 
@@ -552,5 +553,8 @@ app.post("/:id/logs", async (c) => {
 
   return c.json({ log: (log as D1Result<TodoLogRow>).results[0] }, 201);
 });
+
+// Workspace routes: /api/todos/:id/workspace
+app.route("/:id/workspace", workspace);
 
 export default app;
