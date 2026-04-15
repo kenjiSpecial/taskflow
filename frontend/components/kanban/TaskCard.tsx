@@ -59,7 +59,7 @@ export function TaskCard({ todo, projectName }: TaskCardProps) {
           onClick={handleInsertRef}
           onMouseDown={(e) => e.stopPropagation()}
           title="チャットに参照を挿入"
-          className={`absolute top-2 right-2 p-1 rounded transition-all opacity-0 group-hover:opacity-100 ${inserted ? "text-blue-400" : "text-gray-500 hover:text-gray-300"}`}
+          className={`absolute top-2 right-2 p-1 rounded transition-all ${inserted ? "text-blue-400" : "text-gray-500 hover:text-gray-300"}`}
         >
           {inserted ? (
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

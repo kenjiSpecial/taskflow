@@ -47,18 +47,47 @@ export function ProjectList() {
 function ProjectCard({ project }: { project: Project }) {
   const activeSessionCount =
     project.session_active_count + project.session_paused_count;
+  const [inserted, setInserted] = useState(false);
+
+  function handleInsertRef(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.dispatchEvent(
+      new CustomEvent("taskflow:insert-ref", {
+        detail: { type: "project", id: project.id, title: project.name },
+      }),
+    );
+    setInserted(true);
+    setTimeout(() => setInserted(false), 1500);
+  }
 
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="block bg-[#252540] rounded-lg p-4 hover:bg-[#2a2a4a] transition-colors"
+      className="block group bg-[#252540] rounded-lg p-4 hover:bg-[#2a2a4a] transition-colors relative"
     >
+      <button
+        onClick={handleInsertRef}
+        onMouseDown={(e) => e.stopPropagation()}
+        title="チャットに参照を挿入"
+        className={`absolute top-2 right-2 p-1 rounded transition-all ${inserted ? "text-purple-400" : "text-gray-500 hover:text-gray-300"}`}
+      >
+        {inserted ? (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        )}
+      </button>
       <div className="flex items-center gap-2 mb-2">
         <span
           className="w-3 h-3 rounded-full shrink-0"
           style={{ backgroundColor: project.color || "#6366f1" }}
         />
-        <h2 className="text-sm font-semibold text-gray-100 truncate">
+        <h2 className="text-sm font-semibold text-gray-100 truncate pr-5">
           {project.name}
         </h2>
         {project.archived_at && (

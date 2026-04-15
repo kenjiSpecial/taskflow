@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import type { Project, Todo, TodoStatus, WorkSession } from "@/lib/types";
 import { useTodos } from "@/lib/hooks/useTodos";
@@ -65,6 +65,19 @@ export function ProjectDetail({ project }: Props) {
     [project, todos, sessions]
   );
 
+  const [refInserted, setRefInserted] = useState(false);
+  const refTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function handleInsertRef() {
+    window.dispatchEvent(
+      new CustomEvent("taskflow:insert-ref", {
+        detail: { type: "project", id: project.id, title: project.name },
+      }),
+    );
+    setRefInserted(true);
+    if (refTimerRef.current) clearTimeout(refTimerRef.current);
+    refTimerRef.current = setTimeout(() => setRefInserted(false), 1500);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,6 +97,21 @@ export function ProjectDetail({ project }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleInsertRef}
+            title="チャットに参照を挿入"
+            className={`p-1.5 rounded transition-colors ${refInserted ? "text-purple-400" : "text-gray-500 hover:text-gray-300"}`}
+          >
+            {refInserted ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            )}
+          </button>
           <LLMCopyButton generatePrompt={handleGeneratePrompt} />
         </div>
       </div>

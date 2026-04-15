@@ -143,6 +143,7 @@ export function KanbanBoard() {
   const [viewMode, setViewMode] = useState<ViewMode>("unified");
   const [hydrated, setHydrated] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [insertedProjectId, setInsertedProjectId] = useState<string | null>(null);
 
   // ドラッグ検知（window level）
   useEffect(() => {
@@ -358,6 +359,31 @@ export function KanbanBoard() {
                 <h3 className="text-sm font-semibold text-gray-300">
                   {project.name}
                 </h3>
+                {project.id && (
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("taskflow:insert-ref", {
+                          detail: { type: "project", id: project.id, title: project.name },
+                        }),
+                      );
+                      setInsertedProjectId(project.id);
+                      setTimeout(() => setInsertedProjectId(null), 1500);
+                    }}
+                    title="チャットに参照を挿入"
+                    className={`p-0.5 rounded transition-all ${insertedProjectId === project.id ? "text-purple-400" : "text-gray-600 hover:text-gray-300"}`}
+                  >
+                    {insertedProjectId === project.id ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
               </div>
               <div className="flex gap-3 overflow-x-auto">
                 {activeColumns.map((status) => (

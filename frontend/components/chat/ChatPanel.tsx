@@ -102,6 +102,7 @@ export function ChatPanel() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [inputText, setInputText] = useState("");
+  const [attachedRefs, setAttachedRefs] = useState<{ type: "task" | "project"; id: string; title: string }[]>([]);
 
   // Refs
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -110,12 +111,19 @@ export function ChatPanel() {
   const streamingContentRef = useRef("");
   const lastGreetedPathRef = useRef<string | null>(null);
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [inputText]);
+
   // Listen for task reference insert events from kanban cards
   useEffect(() => {
     function handleInsertRef(e: Event) {
-      const { type, id, title } = (e as CustomEvent).detail as { type: string; id: string; title: string };
-      const ref = type === "task" ? `[タスク: ${title} (ID: ${id})] ` : `[${title} (ID: ${id})] `;
-      setInputText((prev) => prev + ref);
+      const { type, id, title } = (e as CustomEvent).detail as { type: "task" | "project"; id: string; title: string };
+      setAttachedRefs((prev) => prev.some((r) => r.type === type && r.id === id) ? prev : [...prev, { type, id, title }]);
       setIsChatOpen(true);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
@@ -209,15 +217,21 @@ export function ChatPanel() {
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();
-    if (!text || isStreaming) return;
+    if ((!text && attachedRefs.length === 0) || isStreaming) return;
+
+    const refText = attachedRefs.map((r) =>
+      r.type === "task" ? `[タスク: ${r.title} (ID: ${r.id})]` : `[プロジェクト: ${r.title} (ID: ${r.id})]`
+    ).join(" ");
+    const fullText = refText ? (text ? `${refText} ${text}` : refText) : text;
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: text,
+      content: fullText,
     };
 
     setInputText("");
+    setAttachedRefs([]);
     setMessages((prev) => [...prev, userMsg]);
     setIsStreaming(true);
     setStreamingContent("");
@@ -226,9 +240,9 @@ export function ChatPanel() {
     setToolExecutions([]);
 
     // Save user message to DB
-    saveMessage({ role: "user", content: text });
+    saveMessage({ role: "user", content: fullText });
 
-    const ctrl = bridgeChat(text, {
+    const ctrl = bridgeChat(fullText, {
       onToken(content) {
         streamingContentRef.current += content;
         setStreamingContent(streamingContentRef.current);
@@ -324,7 +338,7 @@ export function ChatPanel() {
     });
 
     abortRef.current = ctrl;
-  }, [inputText, isStreaming, invalidateAll, pathname, messages]);
+  }, [inputText, attachedRefs, isStreaming, invalidateAll, pathname, messages]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -389,7 +403,7 @@ export function ChatPanel() {
     setIsChatOpen((prev) => !prev);
   }, []);
 
-  const canSend = inputText.trim().length > 0 && !isStreaming;
+  const canSend = (inputText.trim().length > 0 || attachedRefs.length > 0) && !isStreaming;
 
   if (!isChatOpen) {
     return <ChatToggleButton isOpen={false} onClick={toggleChat} />;
@@ -501,10 +515,48 @@ export function ChatPanel() {
       </div>
 
       {/* Input */}
-      <div className="flex items-end gap-2 p-3 border-t border-gray-800">
+      <div className="flex flex-col gap-2 p-3 border-t border-gray-800">
+        {attachedRefs.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {attachedRefs.map((ref) => {
+              const isProject = ref.type === "project";
+              return (
+                <div
+                  key={`${ref.type}-${ref.id}`}
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs max-w-full ${
+                    isProject
+                      ? "bg-purple-900/40 border border-purple-700/50 text-purple-300"
+                      : "bg-blue-900/40 border border-blue-700/50 text-blue-300"
+                  }`}
+                >
+                  {isProject ? (
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0">
+                      <path d="M3 3h7v7H3z" /><path d="M14 3h7v7h-7z" /><path d="M3 14h7v7H3z" /><path d="M14 14h7v7h-7z" />
+                    </svg>
+                  ) : (
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0">
+                      <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                  )}
+                  <span className="truncate max-w-[200px]">{ref.title}</span>
+                  <button
+                    onClick={() => setAttachedRefs((prev) => prev.filter((r) => !(r.type === ref.type && r.id === ref.id)))}
+                    className={`shrink-0 transition-colors ml-0.5 ${isProject ? "text-purple-400 hover:text-purple-200" : "text-blue-400 hover:text-blue-200"}`}
+                    title="削除"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="flex items-end gap-2">
         <textarea
           ref={inputRef}
-          className="flex-1 bg-gray-800 text-gray-100 text-sm rounded-md px-3 py-2 resize-none border border-gray-700 focus:outline-none focus:border-gray-500"
+          className="flex-1 bg-gray-800 text-gray-100 text-sm rounded-md px-3 py-2 resize-none border border-gray-700 focus:outline-none focus:border-gray-500 min-h-[36px] max-h-40 overflow-y-auto"
           placeholder="メッセージを入力..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -547,6 +599,7 @@ export function ChatPanel() {
             </svg>
           </button>
         )}
+        </div>
       </div>
     </div>
   );
