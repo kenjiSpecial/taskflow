@@ -8,17 +8,20 @@ export interface UseTerminalOptions {
   todoId: string;
   containerRef: React.RefObject<HTMLDivElement | null>;
   enabled: boolean;
+  zellijSession?: string;
 }
 
 export interface UseTerminalReturn {
   isConnected: boolean;
   isConnecting: boolean;
+  fit: () => void;
 }
 
 export function useTerminal({
   todoId,
   containerRef,
   enabled,
+  zellijSession,
 }: UseTerminalOptions): UseTerminalReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -38,7 +41,9 @@ export function useTerminal({
     setIsConnecting(true);
     isReadyRef.current = false;
     pendingMessagesRef.current = [];
-    const url = `${BRIDGE_WS_BASE}/ws/terminal/${todoId}`;
+    const url = zellijSession
+      ? `${BRIDGE_WS_BASE}/ws/terminal/${todoId}?zellij=${encodeURIComponent(zellijSession)}`
+      : `${BRIDGE_WS_BASE}/ws/terminal/${todoId}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -70,7 +75,6 @@ export function useTerminal({
           code?: number;
           message?: string;
         };
-        console.log("[term]", msg.type, msg.type === "output" ? `${msg.data?.length ?? 0}chars term=${!!termRef.current}` : "");
         if (msg.type === "ready") {
           isReadyRef.current = true;
           setIsConnected(true);
@@ -80,11 +84,7 @@ export function useTerminal({
           for (const payload of pendingMessagesRef.current) ws.send(payload);
           pendingMessagesRef.current = [];
         } else if (msg.type === "output" && msg.data) {
-          if (termRef.current) {
-            termRef.current.write(msg.data);
-          } else {
-            console.warn("[term] output received but termRef.current is null");
-          }
+          termRef.current?.write(msg.data);
         } else if (msg.type === "exit") {
           isReadyRef.current = false;
           setIsConnected(false);
@@ -114,7 +114,7 @@ export function useTerminal({
     ws.onerror = () => {
       setIsConnecting(false);
     };
-  }, [todoId, containerRef]);
+  }, [todoId, containerRef, zellijSession]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -154,11 +154,28 @@ export function useTerminal({
 
       terminal = new Terminal({
         theme: {
-          background: "#111827", // gray-900
+          background: "#111827",
           foreground: "#f3f4f6",
           cursor: "#60a5fa",
+          // Dracula カラーパレット（ls / Claude Code のカラー表示用）
+          black:         "#1a1a2e",
+          red:           "#ff5555",
+          green:         "#50fa7b",
+          yellow:        "#f1fa8c",
+          blue:          "#6272a4",
+          magenta:       "#ff79c6",
+          cyan:          "#8be9fd",
+          white:         "#bfbfbf",
+          brightBlack:   "#6272a4",
+          brightRed:     "#ff6e6e",
+          brightGreen:   "#69ff94",
+          brightYellow:  "#ffffa5",
+          brightBlue:    "#d6acff",
+          brightMagenta: "#ff92df",
+          brightCyan:    "#a4ffff",
+          brightWhite:   "#ffffff",
         },
-        fontFamily: "\"Fira Code\", \"Cascadia Code\", \"JetBrains Mono\", monospace",
+        fontFamily: '"FiraCode Nerd Font Mono", "FiraCode NFM", "JetBrainsMono Nerd Font Mono", "JetBrainsMono NFM", monospace',
         fontSize: 13,
         lineHeight: 1.2,
         cursorBlink: true,
@@ -186,6 +203,17 @@ export function useTerminal({
       // ターミナル入力 → WebSocket（ready前はキュー）
       terminal.onData((data) => {
         sendOrQueuePersistent(JSON.stringify({ type: "input", data }));
+      });
+
+      // Cmd+V / Ctrl+V のペーストを明示処理（Clipboard API 経由で確実に送信）
+      terminal.attachCustomKeyEventHandler((e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "v" && e.type === "keydown") {
+          navigator.clipboard.readText().then((text) => {
+            if (text) sendOrQueuePersistent(JSON.stringify({ type: "input", data: text }));
+          }).catch(() => { /* clipboard 権限なしの場合は xterm デフォルトに任せる */ });
+          return false;
+        }
+        return true;
       });
 
       // コンテナリサイズ → ターミナルリサイズ（ready前はキュー）
@@ -218,5 +246,15 @@ export function useTerminal({
     };
   }, [enabled, connect, containerRef]);
 
-  return { isConnected, isConnecting };
+  const fit = useCallback(() => {
+    if (!fitAddonRef.current || !termRef.current) return;
+    fitAddonRef.current.fit();
+    const { cols, rows } = termRef.current;
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN && isReadyRef.current) {
+      ws.send(JSON.stringify({ type: "resize", cols, rows }));
+    }
+  }, []);
+
+  return { isConnected, isConnecting, fit };
 }

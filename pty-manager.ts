@@ -26,6 +26,7 @@ interface WsData {
 interface PtySession {
   todoId: string;
   cwd: string;
+  zellijSession: string | undefined;
   proc: ReturnType<typeof Bun.spawn>;
   scrollback: string;
   clients: Set<ServerWebSocket<WsData>>;
@@ -111,20 +112,31 @@ function startReadLoop(session: PtySession): void {
   })();
 }
 
-export function getOrCreateSession(todoId: string, cwd: string): PtySession {
+export function getOrCreateSession(todoId: string, cwd: string, zellijSession?: string): PtySession {
   const existing = sessions.get(todoId);
   if (existing) {
-    if (existing.idleTimer) {
-      clearTimeout(existing.idleTimer);
-      existing.idleTimer = null;
+    if (existing.zellijSession !== zellijSession) {
+      // zellijSession が変わった: 古い PTY を破棄して新規作成
+      if (existing.idleTimer) clearTimeout(existing.idleTimer);
+      try { existing.proc.kill(); } catch { /* ignore */ }
+      sessions.delete(todoId);
+      // fall through to create new session
+    } else {
+      if (existing.idleTimer) {
+        clearTimeout(existing.idleTimer);
+        existing.idleTimer = null;
+      }
+      return existing;
     }
-    return existing;
   }
 
   const resolvedCwd = resolveCwd(cwd);
-  console.log(`[pty] spawn todoId=${todoId} cwd=${resolvedCwd} node=${NODE_BIN}`);
+  console.log(`[pty] spawn todoId=${todoId} cwd=${resolvedCwd} node=${NODE_BIN}${zellijSession ? ` zellij=${zellijSession}` : ""}`);
 
-  const proc = Bun.spawn([NODE_BIN, PTY_SERVER_SCRIPT, resolvedCwd], {
+  const spawnArgs = [NODE_BIN, PTY_SERVER_SCRIPT, resolvedCwd];
+  if (zellijSession) spawnArgs.push(zellijSession);
+
+  const proc = Bun.spawn(spawnArgs, {
     stdout: "pipe",
     stdin: "pipe",
     stderr: "pipe",
@@ -148,6 +160,7 @@ export function getOrCreateSession(todoId: string, cwd: string): PtySession {
   const session: PtySession = {
     todoId,
     cwd: resolvedCwd,
+    zellijSession,
     proc,
     scrollback: "",
     clients: new Set(),

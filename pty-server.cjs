@@ -8,10 +8,16 @@ const pty = require("./node_modules/node-pty");
 
 const cwd = process.argv[2] || process.env.HOME || "/";
 const shell = process.env.SHELL || "/bin/zsh";
+const zellijSession = process.argv[3] || null;
+
+// Zellij セッション指定時: zellij attach --create <name>
+// 未指定時: 通常のシェル
+const spawnCmd = zellijSession ? "zellij" : shell;
+const spawnArgs = zellijSession ? ["attach", "--create", zellijSession] : [];
 
 let term;
 try {
-  term = pty.spawn(shell, [], {
+  term = pty.spawn(spawnCmd, spawnArgs, {
     name: "xterm-256color",
     cwd,
     env: { ...process.env, TERM: "xterm-256color" },

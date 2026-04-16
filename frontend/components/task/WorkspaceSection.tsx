@@ -165,7 +165,11 @@ export function WorkspaceSection({ todoId }: { todoId: string }) {
         onAdd={(path) => addPath.mutate({ path, source: "human" })}
       />
 
-      <TerminalPanel todoId={todoId} />
+      <TerminalPanel
+        todoId={todoId}
+        workspaceZellijSession={workspace.zellij_session}
+        onZellijChange={(v) => upsert.mutate({ zellij_session: v || null })}
+      />
     </div>
   );
 }

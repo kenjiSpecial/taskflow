@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import type { Todo, TodoStatus, Project } from "@/lib/types";
 import { useTodos, useUpdateTodo } from "@/lib/hooks/useTodos";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -356,9 +357,16 @@ export function KanbanBoard() {
                     style={{ backgroundColor: project.color }}
                   />
                 )}
-                <h3 className="text-sm font-semibold text-gray-300">
-                  {project.name}
-                </h3>
+                {project.id ? (
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className="text-sm font-semibold text-gray-300 hover:text-white hover:underline"
+                  >
+                    {project.name}
+                  </Link>
+                ) : (
+                  <h3 className="text-sm font-semibold text-gray-300">{project.name}</h3>
+                )}
                 {project.id && (
                   <button
                     onClick={() => {

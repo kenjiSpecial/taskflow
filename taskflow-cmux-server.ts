@@ -820,6 +820,17 @@ const server = Bun.serve({
       }
     }
 
+    // GET /zellij/sessions — 実行中の Zellij セッション一覧
+    if (url.pathname === "/zellij/sessions" && req.method === "GET") {
+      try {
+        const result = Bun.spawnSync(["zellij", "list-sessions", "--short"], { stderr: "pipe" });
+        const sessions = result.stdout.toString().trim().split("\n").filter(Boolean);
+        return jsonResponse({ sessions }, 200, origin);
+      } catch {
+        return jsonResponse({ sessions: [] }, 200, origin);
+      }
+    }
+
     // WebSocket upgrade: /ws/terminal/:todoId
     if (url.pathname.startsWith("/ws/terminal/")) {
       const todoId = url.pathname.split("/")[3];
@@ -830,7 +841,8 @@ const server = Bun.serve({
       if (!isOriginAllowed) {
         return new Response("Forbidden", { status: 403 });
       }
-      const upgraded = server.upgrade(req, { data: { todoId } });
+      const zellijSession = url.searchParams.get("zellij") ?? undefined;
+      const upgraded = server.upgrade(req, { data: { todoId, zellijSession } });
       if (!upgraded) {
         return new Response("WebSocket upgrade failed", { status: 500 });
       }
@@ -865,7 +877,8 @@ const server = Bun.serve({
         } finally {
           clearTimeout(timeout);
         }
-        const session = getOrCreateSession(todoId, cwd);
+        const zellijSession = (ws.data as { todoId: string; zellijSession?: string }).zellijSession;
+        const session = getOrCreateSession(todoId, cwd, zellijSession);
         attachClient(todoId, ws, session);
         console.log(`[ws] attached todoId=${todoId} pid=${session.proc.pid} cwd=${session.cwd}`);
       } catch (err) {
