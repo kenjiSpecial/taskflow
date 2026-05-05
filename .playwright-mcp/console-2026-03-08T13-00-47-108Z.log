@@ -1,7 +1,0 @@
-[     103ms] TypeError: Cannot read properties of undefined (reading 'length')
-    at x.ChatPanel [as constructor] (http://localhost:5173/src/components/ChatPanel.tsx?t=1772974754658:300:41)
-    at x.G [as render] (http://localhost:5173/node_modules/.vite/deps/chunk-QLIYN2WY.js?v=b01539fd:236:15)
-    at z (http://localhost:5173/node_modules/.vite/deps/chunk-QLIYN2WY.js?v=b01539fd:154:45)
-    at C (http://localhost:5173/node_modules/.vite/deps/chunk-QLIYN2WY.js?v=b01539fd:53:50)
-    at I (http://localhost:5173/node_modules/.vite/deps/chunk-QLIYN2WY.js?v=b01539fd:65:95)
-    at http://localhost:5173/node_modules/@prefresh/core/src/runtime/debounceRendering.js?v=b01539fd:13:7

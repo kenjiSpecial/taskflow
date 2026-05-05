@@ -262,3 +262,42 @@ curl -X POST -H "Authorization: Bearer $API_TOKEN" -H "Content-Type: application
 # 削除
 curl -X DELETE -H "Authorization: Bearer $API_TOKEN" https://taskflow.kenji-draemon.workers.dev/api/todos/<id>
 ```
+
+## MCPサーバー
+
+Taskflow は AI エージェント統合用の MCP (Model Context Protocol) サーバーを提供します。
+
+### Claude Code での設定
+
+```bash
+claude mcp add taskflow -- bun run mcp --cwd ~/projects/compose/taskflow/api
+```
+
+環境変数:
+- `TASKFLOW_API_URL` — Taskflow API のベース URL（デフォルト: `http://localhost:8787`）
+- `TASKFLOW_API_TOKEN` — Bearer 認証トークン（必須）
+
+### Hermes Agent での設定
+
+`~/.hermes/config.yaml`:
+```yaml
+mcp_servers:
+  taskflow:
+    command: bun
+    args:
+      - run
+      - mcp
+    workdir: ~/projects/compose/taskflow/api
+    env:
+      TASKFLOW_API_URL: http://localhost:8787
+      TASKFLOW_API_TOKEN: taskflow-bearer-2026
+```
+
+### エージェント向けRESTエンドポイント
+
+| エンドポイント | 説明 |
+|---------------|------|
+| `GET /api/agent/tools` | OpenAI function-calling 形式の全ツール定義（21ツール） |
+| `GET /api/agent/manifest` | API メタ情報（認証方式/ステータス一覧/優先度） |
+| `GET /api/agent/version` | API バージョン情報 |
+| `POST /api/agent/execute` | ツール実行（Phase 2 で実装予定、現在は501） |
